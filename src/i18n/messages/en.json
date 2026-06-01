@@ -1,0 +1,196 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About Us",
+    "services": "Services",
+    "doctors": "Our Doctors",
+    "staff": "Our Staff",
+    "blog": "Blog",
+    "network": "Our Network",
+    "gallery": "Gallery",
+    "contact": "Contact",
+    "book": "Book Appointment",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "My Dashboard",
+    "logout": "Logout"
+  },
+  "topbar": {
+    "emergency": "Emergency",
+    "available": "Available 24/7"
+  },
+  "hero": {
+    "badge": "CMFI Mercy Works — Hope Clinic Koumé",
+    "title": "Quality Medical Care for",
+    "titleHighlight": "Every Soul",
+    "subtitle": "Healthcare for Everyone — Healing Body, Mind & Spirit",
+    "ctaBook": "Book Appointment",
+    "ctaServices": "Explore Services",
+    "scroll": "Scroll to discover"
+  },
+  "stats": {
+    "patients": "Patients Treated",
+    "clinics": "Functional Hope Clinics",
+    "emergency": "Emergency Care",
+    "countries": "Countries Reached"
+  },
+  "welcome": {
+    "title": "Welcome to Hope Clinic Koumé",
+    "subtitle": "A Christian Healing Ministry in the Heart of Cameroon",
+    "body": "Hope Clinic Koumé is a compassionate medical facility founded on Christian values, delivering quality healthcare to all people regardless of their means. Located in Koumé-Bonis, Bertoua, East Region of Cameroon, we serve as a beacon of hope and healing.",
+    "emergency": "24/7 Emergency Care",
+    "surgery": "Surgical Procedures",
+    "diagnostics": "Advanced Diagnostics",
+    "learnMore": "Learn More About Us",
+    "director": "Dr. Ginette Bekolo — Director, Hope Clinic Koumé"
+  },
+  "departments": {
+    "title": "Our Departments",
+    "subtitle": "Comprehensive healthcare services under one roof",
+    "viewAll": "View All Services",
+    "learnMore": "Learn More"
+  },
+  "hours": {
+    "title": "Working Hours",
+    "subtitle": "We are here when you need us most",
+    "emergency": "Emergency services available 24/7",
+    "book": "Book Now",
+    "monWed": "Monday – Wednesday",
+    "thuFri": "Thursday – Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday",
+    "closed": "Closed",
+    "emergency24": "Emergency"
+  },
+  "doctors": {
+    "title": "Our Dedicated Doctors",
+    "subtitle": "Expert medical professionals committed to your wellbeing",
+    "viewAll": "View All Doctors",
+    "book": "Book Appointment",
+    "experience": "Years Experience",
+    "specialization": "Specialization"
+  },
+  "emergency": {
+    "title": "Emergency? We're Here for You",
+    "subtitle": "24/7 Emergency Care — Always available for urgent medical needs",
+    "call": "Call Emergency Now"
+  },
+  "blog": {
+    "title": "Health News & Updates",
+    "subtitle": "Stay informed with the latest from Hope Clinic Koumé",
+    "viewAll": "View All Articles",
+    "readMore": "Read More",
+    "minRead": "min read"
+  },
+  "testimonials": {
+    "title": "What Our Patients Say",
+    "subtitle": "Real stories from the people we serve"
+  },
+  "mercyWorks": {
+    "title": "Part of the Mercy Works Department",
+    "subtitle": "CMFI — Christian Missionary Fellowship International",
+    "body": "Hope Clinic Koumé operates under the Mercy Works Department of CMFI, fulfilling the vision of the Zacharias Tanee Fomum Foundation to manifest God's Kingdom through compassionate healthcare.",
+    "learnMore": "Learn About Mercy Works",
+    "ztf": "ZTF Foundation"
+  },
+  "cta": {
+    "title": "Book Your Appointment Today",
+    "subtitle": "Take the first step towards better health. Our team of dedicated professionals is ready to care for you.",
+    "bookNow": "Book Now",
+    "note": "Registration required to book appointments",
+    "callUs": "Or call us",
+    "or": "or"
+  },
+  "footer": {
+    "tagline": "Healthcare for Everyone — Healing Body, Mind & Spirit",
+    "quickLinks": "Quick Links",
+    "services": "Services",
+    "contact": "Contact",
+    "address": "Koumé-Bonis Quarter, Bertoua, East Region, Cameroon",
+    "copyright": "Hope Clinic Koumé — CMFI Mercy Works. All rights reserved.",
+    "builtWith": "A Ministry of the ZTF Foundation",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Use"
+  },
+  "about": {
+    "title": "About Hope Clinic Koumé",
+    "subtitle": "A Story of Faith, Healing & African Excellence",
+    "mission": "Our Mission",
+    "vision": "Our Vision",
+    "history": "Our History",
+    "organisation": "Our Organisation",
+    "goals": "Our Goals"
+  },
+  "services": {
+    "title": "Our Services",
+    "subtitle": "Comprehensive healthcare for every member of your family",
+    "bookService": "Book this Service"
+  },
+  "booking": {
+    "title": "Book an Appointment",
+    "subtitle": "Schedule your visit in just a few steps",
+    "step1": "Select Service",
+    "step2": "Choose Doctor",
+    "step3": "Date & Time",
+    "step4": "Your Details",
+    "step5": "Confirm",
+    "next": "Next",
+    "back": "Back",
+    "confirm": "Confirm Booking",
+    "loginRequired": "Please login to book an appointment",
+    "loginBtn": "Login to Book"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Create Account",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "country": "Country",
+    "dob": "Date of Birth",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "orContinueWith": "Or continue with",
+    "termsAgree": "I agree to the Terms of Service and Privacy Policy",
+    "google": "Continue with Google"
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "We're here to help — reach out anytime",
+    "name": "Full Name",
+    "email": "Email Address",
+    "phone": "Phone Number",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "Send Message",
+    "address": "Address",
+    "workingHours": "Working Hours",
+    "socialMedia": "Follow Us",
+    "getDirections": "Get Directions",
+    "whatsapp": "Chat on WhatsApp"
+  },
+  "network": {
+    "title": "Hope Clinics Global Network",
+    "subtitle": "Bringing healing to communities across the world",
+    "eastCameroon": "East Region of Cameroon",
+    "cameroon": "Rest of Cameroon",
+    "africa": "Africa",
+    "world": "The World",
+    "active": "Active",
+    "planned": "Planned",
+    "inConstruction": "In Construction",
+    "historical": "Historical",
+    "founded": "Founded",
+    "startClinic": "Start a Hope Clinic in your city"
+  },
+  "gallery": {
+    "title": "Gallery & Media",
+    "subtitle": "Moments from our healing ministry",
+    "photos": "Photos",
+    "videos": "Videos",
+    "press": "Press & Media"
+  }
+}

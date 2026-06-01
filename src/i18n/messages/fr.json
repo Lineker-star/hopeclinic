@@ -1,0 +1,196 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "about": "À Propos",
+    "services": "Services",
+    "doctors": "Nos Médecins",
+    "staff": "Notre Équipe",
+    "blog": "Blog",
+    "network": "Notre Réseau",
+    "gallery": "Galerie",
+    "contact": "Contact",
+    "book": "Prendre Rendez-vous",
+    "login": "Connexion",
+    "register": "S'inscrire",
+    "dashboard": "Mon Tableau de Bord",
+    "logout": "Déconnexion"
+  },
+  "topbar": {
+    "emergency": "Urgence",
+    "available": "Disponible 24h/7j"
+  },
+  "hero": {
+    "badge": "CMFI Mercy Works — Clinique de l'Espoir Koumé",
+    "title": "Des Soins Médicaux de Qualité pour",
+    "titleHighlight": "Chaque Âme",
+    "subtitle": "La Santé pour Tous — Guérir le Corps, l'Esprit & l'Âme",
+    "ctaBook": "Prendre Rendez-vous",
+    "ctaServices": "Voir nos Services",
+    "scroll": "Défiler pour découvrir"
+  },
+  "stats": {
+    "patients": "Patients Traités",
+    "clinics": "Cliniques de l'Espoir",
+    "emergency": "Soins d'Urgence",
+    "countries": "Pays Atteints"
+  },
+  "welcome": {
+    "title": "Bienvenue à la Clinique de l'Espoir Koumé",
+    "subtitle": "Un Ministère de Guérison Chrétien au Cœur du Cameroun",
+    "body": "La Clinique de l'Espoir Koumé est un établissement médical fondé sur des valeurs chrétiennes, offrant des soins de santé de qualité à tous, indépendamment de leurs moyens. Située à Koumé-Bonis, Bertoua, Région de l'Est du Cameroun.",
+    "emergency": "Urgences 24h/7j",
+    "surgery": "Interventions Chirurgicales",
+    "diagnostics": "Diagnostics Avancés",
+    "learnMore": "En Savoir Plus",
+    "director": "Dr. Ginette Bekolo — Directrice, Clinique de l'Espoir Koumé"
+  },
+  "departments": {
+    "title": "Nos Départements",
+    "subtitle": "Des services de santé complets sous un même toit",
+    "viewAll": "Voir Tous les Services",
+    "learnMore": "En Savoir Plus"
+  },
+  "hours": {
+    "title": "Heures d'Ouverture",
+    "subtitle": "Nous sommes là quand vous avez le plus besoin de nous",
+    "emergency": "Services d'urgence disponibles 24h/7j",
+    "book": "Réserver",
+    "monWed": "Lundi – Mercredi",
+    "thuFri": "Jeudi – Vendredi",
+    "saturday": "Samedi",
+    "sunday": "Dimanche",
+    "closed": "Fermé",
+    "emergency24": "Urgences"
+  },
+  "doctors": {
+    "title": "Nos Médecins Dévoués",
+    "subtitle": "Des professionnels de santé experts dédiés à votre bien-être",
+    "viewAll": "Voir Tous les Médecins",
+    "book": "Prendre Rendez-vous",
+    "experience": "Années d'Expérience",
+    "specialization": "Spécialisation"
+  },
+  "emergency": {
+    "title": "Urgence ? Nous Sommes Là",
+    "subtitle": "Soins d'Urgence 24h/7j — Toujours disponibles pour vos besoins médicaux urgents",
+    "call": "Appeler les Urgences"
+  },
+  "blog": {
+    "title": "Actualités Santé & Mises à Jour",
+    "subtitle": "Restez informés des dernières nouvelles de la Clinique de l'Espoir Koumé",
+    "viewAll": "Voir Tous les Articles",
+    "readMore": "Lire la Suite",
+    "minRead": "min de lecture"
+  },
+  "testimonials": {
+    "title": "Ce que Disent nos Patients",
+    "subtitle": "Histoires réelles des personnes que nous servons"
+  },
+  "mercyWorks": {
+    "title": "Partie du Département Mercy Works",
+    "subtitle": "CMFI — Christian Missionary Fellowship International",
+    "body": "La Clinique de l'Espoir Koumé opère sous le Département Mercy Works de la CMFI, réalisant la vision de la Fondation Zacharias Tanee Fomum de manifester le Royaume de Dieu à travers des soins de santé compassionnels.",
+    "learnMore": "En Savoir Plus sur Mercy Works",
+    "ztf": "Fondation ZTF"
+  },
+  "cta": {
+    "title": "Prenez Rendez-vous Aujourd'hui",
+    "subtitle": "Faites le premier pas vers une meilleure santé. Notre équipe de professionnels dévoués est prête à vous soigner.",
+    "bookNow": "Réserver Maintenant",
+    "note": "Inscription requise pour prendre rendez-vous",
+    "callUs": "Ou appelez-nous",
+    "or": "ou"
+  },
+  "footer": {
+    "tagline": "La Santé pour Tous — Guérir le Corps, l'Esprit & l'Âme",
+    "quickLinks": "Liens Rapides",
+    "services": "Services",
+    "contact": "Contact",
+    "address": "Quartier Koumé-Bonis, Bertoua, Région de l'Est, Cameroun",
+    "copyright": "Clinique de l'Espoir Koumé — CMFI Mercy Works. Tous droits réservés.",
+    "builtWith": "Un Ministère de la Fondation ZTF",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions d'Utilisation"
+  },
+  "about": {
+    "title": "À Propos de la Clinique de l'Espoir Koumé",
+    "subtitle": "Une Histoire de Foi, de Guérison et d'Excellence Africaine",
+    "mission": "Notre Mission",
+    "vision": "Notre Vision",
+    "history": "Notre Histoire",
+    "organisation": "Notre Organisation",
+    "goals": "Nos Objectifs"
+  },
+  "services": {
+    "title": "Nos Services",
+    "subtitle": "Des soins de santé complets pour chaque membre de votre famille",
+    "bookService": "Réserver ce Service"
+  },
+  "booking": {
+    "title": "Prendre un Rendez-vous",
+    "subtitle": "Planifiez votre visite en quelques étapes simples",
+    "step1": "Sélectionner le Service",
+    "step2": "Choisir le Médecin",
+    "step3": "Date & Heure",
+    "step4": "Vos Informations",
+    "step5": "Confirmer",
+    "next": "Suivant",
+    "back": "Retour",
+    "confirm": "Confirmer le Rendez-vous",
+    "loginRequired": "Veuillez vous connecter pour prendre rendez-vous",
+    "loginBtn": "Se Connecter"
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "Créer un Compte",
+    "email": "Adresse Email",
+    "password": "Mot de Passe",
+    "confirmPassword": "Confirmer le Mot de Passe",
+    "fullName": "Nom Complet",
+    "phone": "Numéro de Téléphone",
+    "country": "Pays",
+    "dob": "Date de Naissance",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?",
+    "hasAccount": "Déjà un compte ?",
+    "orContinueWith": "Ou continuer avec",
+    "termsAgree": "J'accepte les Conditions d'Utilisation et la Politique de Confidentialité",
+    "google": "Continuer avec Google"
+  },
+  "contact": {
+    "title": "Contactez-Nous",
+    "subtitle": "Nous sommes là pour vous aider — contactez-nous à tout moment",
+    "name": "Nom Complet",
+    "email": "Adresse Email",
+    "phone": "Numéro de Téléphone",
+    "subject": "Sujet",
+    "message": "Message",
+    "send": "Envoyer le Message",
+    "address": "Adresse",
+    "workingHours": "Heures d'Ouverture",
+    "socialMedia": "Suivez-Nous",
+    "getDirections": "Obtenir l'Itinéraire",
+    "whatsapp": "Chatter sur WhatsApp"
+  },
+  "network": {
+    "title": "Réseau Mondial des Cliniques de l'Espoir",
+    "subtitle": "Apporter la guérison aux communautés à travers le monde",
+    "eastCameroon": "Région de l'Est du Cameroun",
+    "cameroon": "Reste du Cameroun",
+    "africa": "Afrique",
+    "world": "Le Monde",
+    "active": "Active",
+    "planned": "Planifiée",
+    "inConstruction": "En Construction",
+    "historical": "Historique",
+    "founded": "Fondée",
+    "startClinic": "Démarrer une Clinique de l'Espoir dans votre ville"
+  },
+  "gallery": {
+    "title": "Galerie & Médias",
+    "subtitle": "Moments de notre ministère de guérison",
+    "photos": "Photos",
+    "videos": "Vidéos",
+    "press": "Presse & Médias"
+  }
+}

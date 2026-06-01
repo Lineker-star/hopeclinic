@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+/* ─── Hope Clinic Design System ─── */
+@theme inline {
+  /* Primary — Hope Clinic Red */
+  --color-primary: #C8102E;
+  --color-primary-dark: #8B0000;
+  --color-primary-light: #FF4444;
+
+  /* Secondary — Charcoal */
+  --color-secondary: #2D2D2D;
+  --color-secondary-mid: #4A4A4A;
+
+  /* Accent — African Gold */
+  --color-accent: #D4A017;
+  --color-accent-light: #F5C842;
+
+  /* Neutrals */
+  --color-off-white: #F9F6F1;
+  --color-light-gray: #F2F0ED;
+  --color-border: #E5E1DC;
+
+  /* Text */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #5A5A5A;
+  --color-text-muted: #9A9A9A;
+
+  /* System */
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+  --color-info: #2563EB;
+
+  /* Fonts */
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Nunito', 'Lato', sans-serif;
+}
+
+:root {
+  --background: #F9F6F1;
+  --foreground: #1A1A1A;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Nunito', 'Lato', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* Emergency pulse animation */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.pulse-red {
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+/* Scroll animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Glass effect */
+.glass {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Red gradient overlay */
+.hero-overlay {
+  background: linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(139,0,0,0.35) 100%);
+}
+
+/* African pattern subtle bg */
+.african-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23D4A017' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #C8102E; border-radius: 3px; }
+
+/* RTL support for Arabic */
+[dir="rtl"] .rtl-flip { transform: scaleX(-1); }
