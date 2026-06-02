@@ -24,16 +24,48 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Deploy via FTP
+      # Stage only the files Hostinger needs to run the app
+      - name: Prepare deployment files
+        run: |
+          mkdir -p deploy-output
+          cp -r .next          deploy-output/
+          cp -r public         deploy-output/
+          cp    package.json   deploy-output/
+          cp    package-lock.json deploy-output/ 2>/dev/null || true
+          # Support both next.config.ts and next.config.js
+          cp    next.config.ts deploy-output/ 2>/dev/null || \
+          cp    next.config.js deploy-output/ 2>/dev/null || true
+          echo "--- Deployment contents ---"
+          ls -lh deploy-output/
+
+      - name: Upload built files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
-          local-dir: ./
+          local-dir: ./deploy-output/
           server-dir: /home/u476278433/hopeclinic.koume.org/
+          # .next/cache can be very large — skip it
           exclude: |
-            **/.git*
-            **/.git*/**
-            .github/**
-            node_modules/**
+            **/.next/cache/**
+
+      - name: Trigger Hostinger redeploy
+        run: |
+          RESPONSE=$(curl -s -o /tmp/redeploy.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.HOSTINGER_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"domain":"hopeclinic.koume.org"}' \
+            "https://api.hostinger.com/v1/hosting/u476278433/applications/deploy")
+
+          echo "Redeploy status: $RESPONSE"
+          echo "Response body:"
+          cat /tmp/redeploy.json
+
+          if [ "$RESPONSE" -lt 200 ] || [ "$RESPONSE" -ge 300 ]; then
+            echo "Redeploy trigger failed (HTTP $RESPONSE)"
+            exit 1
+          fi
+
+          echo "Redeploy triggered successfully"
