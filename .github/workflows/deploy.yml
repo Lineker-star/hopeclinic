@@ -1,21 +1,56 @@
 name: Deploy to Hostinger
+
 on:
   push:
     branches: [main]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v3
         with:
           node-version: '22'
-      - run: npm install
-      - run: npm run build
-      - uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          local-dir: ./
-          server-dir: /home/u123456789/hopeclinic.koume.org/
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Create deployment archive
+        run: |
+          # Include source + build output; exclude dev artifacts and large cache
+          zip -r deploy.zip . \
+            --exclude "*.git*" \
+            --exclude ".github/*" \
+            --exclude "node_modules/*" \
+            --exclude ".next/cache/*"
+          echo "Archive size: $(du -sh deploy.zip | cut -f1)"
+
+      - name: Deploy to Hostinger via API
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: |
+          RESPONSE=$(curl -s -o /tmp/deploy_response.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $HOSTINGER_API_TOKEN" \
+            -F "file=@deploy.zip" \
+            "https://api.hostinger.com/v1/hosting/u161800917/applications/deploy?domain=hopeclinic.koume.org")
+
+          echo "HTTP Status: $RESPONSE"
+          echo "API Response:"
+          cat /tmp/deploy_response.json
+
+          if [ "$RESPONSE" -lt 200 ] || [ "$RESPONSE" -ge 300 ]; then
+            echo "Deployment failed with HTTP $RESPONSE"
+            exit 1
+          fi
+
+          echo "Deployment successful!"
