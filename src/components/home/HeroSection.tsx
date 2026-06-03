@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// African healthcare images only
+// African healthcare images — Unsplash free license
 const heroImages = [
-  'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1920&q=80',
-  'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=1920&q=80',
-  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=1920&q=80',
-  'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=1920&q=80',
+  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1920&q=80', // African doctor consultation
+  'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1920&q=80',   // African maternity care
+  'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=1920&q=80',// African nurse with patient
+  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=1920&q=80',// African pediatric care
 ];
 
 export default function HeroSection() {
