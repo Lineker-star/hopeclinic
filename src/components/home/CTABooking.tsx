@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { Calendar, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
