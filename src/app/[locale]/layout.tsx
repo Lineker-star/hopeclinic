@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Nunito } from 'next/font/google';
 import '../globals.css';
 import TopBar from '@/components/layout/TopBar';
 import Navbar from '@/components/layout/Navbar';
+import NewsBar from '@/components/layout/NewsBar';
 import Footer from '@/components/layout/Footer';
 import EmergencyFloat from '@/components/ui/EmergencyFloat';
 
@@ -26,11 +27,8 @@ export const metadata: Metadata = {
     default: 'Hope Clinic Koumé — Healthcare for Everyone | CMFI Mercy Works',
   },
   description:
-    'Hope Clinic Koumé is a Christian medical clinic in Bertoua, Cameroon providing quality healthcare through the Mercy Works Department of the ZTF Foundation. Emergency: +237 650 441 422',
-  keywords: [
-    'Hope Clinic', 'Bertoua', 'Cameroon', 'Healthcare', 'CMFI',
-    'Mercy Works', 'ZTF Foundation', 'Koumé', 'Hospital Bertoua',
-  ],
+    'Hope Clinic Koumé — 68,791 patients treated over 10 years. Quality healthcare in Bertoua, Cameroon. Emergency 24/7: +237 650 441 422.',
+  keywords: ['Hope Clinic', 'Bertoua', 'Cameroon', 'Healthcare', 'CMFI', 'Mercy Works', 'ZTF Foundation'],
   openGraph: {
     type: 'website',
     siteName: 'Hope Clinic Koumé',
@@ -51,12 +49,27 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className={`${cormorant.variable} ${nunito.variable}`}>
-      <body style={{ fontFamily: 'var(--font-body), Nunito, sans-serif' }} className="bg-[#F9F6F1] text-[#1A1A1A] antialiased">
+      <body
+        style={{ fontFamily: 'var(--font-body), Nunito, sans-serif' }}
+        className="bg-[#F8FAFF] text-[#1A1A2E] antialiased"
+      >
+        {/* TopBar: 36px fixed at very top */}
         <TopBar />
+
+        {/* Navbar: fixed below TopBar (top: 36px), height ~64px */}
         <Navbar />
-        <main className="pt-[88px]">
+
+        {/* NewsBar: scrolling announcements — sits below navbar */}
+        {/* Total offset = 36 (topbar) + 64 (navbar) = 100px */}
+        <div className="fixed left-0 right-0 z-30" style={{ top: '100px' }}>
+          <NewsBar />
+        </div>
+
+        {/* Main content: padded for topbar + navbar + newsbar (~136px) */}
+        <main className="pt-[136px]">
           {children}
         </main>
+
         <Footer />
         <EmergencyFloat />
       </body>

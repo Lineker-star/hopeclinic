@@ -18,7 +18,7 @@ const stats10yr = [
   { value: '15,726',  label: 'Campaign Patients' },
   { value: '713',     label: 'Campaign Surgeries' },
   { value: '248',     label: 'Campaign Deliveries' },
-  { value: '19',      label: 'Health Campaigns' },
+  { value: '23',      label: 'Health Campaigns' },
   { value: '~200',    label: 'Campaign Volunteers' },
 ];
 
@@ -113,7 +113,7 @@ const timeline = [
   },
   {
     year: 2024, title: '10 Years of Excellence',
-    desc: '68,791 patients treated over 10 years. 1,135 surgeries. 1,576 births. 19 health campaigns reaching 15,726 patients. 30,726+ patients in the most recent year across 12 Hope Clinics. A decade of compassionate, quality healthcare.',
+    desc: '68,791 patients treated over 10 years. 1,135 surgeries. 1,576 births. 23 health campaigns reaching 15,726 patients. 30,726+ patients in the most recent year across 12 Hope Clinics. A decade of compassionate, quality healthcare.',
     isKey: true,
   },
 ];

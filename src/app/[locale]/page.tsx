@@ -9,6 +9,7 @@ import BlogPreview from '@/components/home/BlogPreview';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import MercyWorksSection from '@/components/home/MercyWorksSection';
 import CTABooking from '@/components/home/CTABooking';
+import PartnersSection from '@/components/home/PartnersSection';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default function HomePage() {
       <BlogPreview />
       <TestimonialsSection />
       <MercyWorksSection />
+      <PartnersSection />
       <CTABooking />
     </>
   );

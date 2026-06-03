@@ -108,9 +108,9 @@ const services = [
     img: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&auto=format&fit=crop',
   },
   {
-    id: 'mobile', icon: '🚐', color: '#D4A017', badge: '19 campaigns',
+    id: 'mobile', icon: '🚐', color: '#D4A017', badge: '23 campaigns',
     name: 'Hope Mobile Clinic',
-    desc: '19 health campaigns conducted. 15,726 patients reached in remote communities. Field trips bring care directly to villages across the East Region and beyond — 713 campaign surgeries, 248 campaign deliveries.',
+    desc: '23 health campaigns conducted. 15,726 patients reached in remote communities. Field trips bring care directly to villages across the East Region and beyond — 713 campaign surgeries, 248 campaign deliveries.',
     features: ['Community outreach', 'Remote village care', 'Free consultations', 'Campaign surgeries', 'Dental hygiene education'],
     img: 'https://images.unsplash.com/photo-1584346133934-a3afd65a4f50?w=600&auto=format&fit=crop',
   },
@@ -236,7 +236,7 @@ export default function ServicesPage() {
             {[
               { icon: '✝️', color: '#D4A017', title: 'Hope Spiritual Clinic', desc: 'Prayer, pastoral care, and spiritual healing alongside medical treatment. Healing the whole person — body, soul, and spirit.' },
               { icon: '🌿', color: '#D4A017', title: 'Hope Holistic Clinic',  desc: 'Marital counselling, career guidance, family therapy, and complete wholistic wellbeing — because health is more than the physical.' },
-              { icon: '🚐', color: '#D4A017', title: 'Hope Mobile Clinic',    desc: '19 campaigns, 15,726 patients reached. Field outreach brings healthcare to the most remote villages and underserved communities.' },
+              { icon: '🚐', color: '#D4A017', title: 'Hope Mobile Clinic',    desc: '23 campaigns, 15,726 patients reached. Field outreach brings healthcare to the most remote villages and underserved communities.' },
             ].map(({ icon, color, title, desc }) => (
               <div key={title} className="bg-white/5 border border-white/10 rounded-xl p-6 text-center hover:bg-white/10 transition-all">
                 <div className="text-4xl mb-3">{icon}</div>
