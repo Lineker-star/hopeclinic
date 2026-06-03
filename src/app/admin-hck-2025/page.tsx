@@ -88,7 +88,7 @@ export default function AdminLoginPage() {
           </form>
 
           <p className="text-center text-xs text-[#8896B3] mt-6">
-            An OTP will be sent to your email to complete sign-in.
+            A 6-digit OTP will be sent to your email to complete sign-in.
           </p>
         </div>
 

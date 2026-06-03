@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         }),
       });
     } else {
-      // Dev fallback: log OTP
+      // Dev fallback — remove before production
       console.log(`[DEV] OTP for ${email}: ${otp}`);
     }
 
