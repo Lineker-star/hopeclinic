@@ -1,57 +1,57 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Edit3, Trash2, Eye, EyeOff, Star } from 'lucide-react';
-import { blogPosts as seedPosts } from '@/data/blog-posts';
+import Link from 'next/link';
+import { Plus, Edit3, Trash2, Eye, EyeOff, Star, Search, Tag, RefreshCw } from 'lucide-react';
+import { blogPosts as SEED } from '@/data/blog-posts';
 
-interface BlogPost { id: string; title: string; category: string; cover_image_url: string; is_published: boolean; is_featured: boolean; published_at: string; author_name: string; reading_time_minutes: number; }
+interface Post { id: string; slug: string; title: string; excerpt?: string; cover_image_url?: string; category: string; tags?: string[]; author_name?: string; author_image_url?: string; is_published: boolean; is_featured: boolean; published_at?: string; reading_time_minutes?: number; created_at?: string }
 
 const CATEGORIES = ['All', 'Events & Campaigns', 'Health Awareness', 'Clinic News', 'Medical Achievements', 'Partnerships'];
+const STATUS_OPTS = ['ALL', 'PUBLISHED', 'DRAFT'];
 
-export default function BlogAdmin() {
-  const [posts, setPosts]       = useState<BlogPost[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [catFilter, setCatFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+const toRows = (): Post[] => SEED.map(p => ({ id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt, cover_image_url: p.coverImage, category: p.category, tags: p.tags, author_name: p.author, author_image_url: p.authorImage, is_published: true, is_featured: false, published_at: p.publishedAt, reading_time_minutes: p.readingTime }));
 
-  useEffect(() => { fetchPosts(); }, []);
+export default function BlogManager() {
+  const [posts,    setPosts]    = useState<Post[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [search,   setSearch]   = useState('');
+  const [catFilter,setCatFilter] = useState('All');
+  const [statFilter,setStatFilter] = useState('ALL');
 
-  const fetchPosts = async () => {
-    setLoading(true);
-    const r = await fetch('/api/admin/blog');
-    if (r.ok) setPosts(await r.json());
-    else setPosts(seedPosts.map(p => ({
-      id: p.id, title: p.title, category: p.category, cover_image_url: p.coverImage,
-      is_published: true, is_featured: false, published_at: p.publishedAt,
-      author_name: p.author, reading_time_minutes: p.readingTime,
-    })));
-    setLoading(false);
-  };
+  useEffect(() => {
+    fetch('/api/admin/blog').then(r => r.ok ? r.json() : null).then(d => setPosts(d?.length ? d : toRows())).catch(() => setPosts(toRows())).finally(() => setLoading(false));
+  }, []);
 
-  const togglePublished = async (id: string, current: boolean) => {
-    await fetch(`/api/admin/blog/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_published: !current, published_at: !current ? new Date().toISOString() : null }) });
-    setPosts(ps => ps.map(p => p.id === id ? { ...p, is_published: !current } : p));
+  const togglePublished = async (id: string) => {
+    const post = posts.find(p => p.id === id)!;
+    const updated = { is_published: !post.is_published, published_at: !post.is_published ? new Date().toISOString() : null };
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p));
+    await fetch(`/api/admin/blog/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) }).catch(() => {});
   };
 
   const deletePost = async (id: string) => {
     if (!confirm('Delete this post?')) return;
-    await fetch(`/api/admin/blog/${id}`, { method: 'DELETE' });
-    setPosts(ps => ps.filter(p => p.id !== id));
+    setPosts(p => p.filter(x => x.id !== id));
+    await fetch(`/api/admin/blog/${id}`, { method: 'DELETE' }).catch(() => {});
   };
 
   const filtered = posts.filter(p => {
-    const matchCat    = catFilter === 'All' || p.category === catFilter;
-    const matchStatus = statusFilter === 'ALL' || (statusFilter === 'PUBLISHED' ? p.is_published : !p.is_published);
-    return matchCat && matchStatus;
+    const matchSrch = !search || p.title.toLowerCase().includes(search.toLowerCase());
+    const matchCat  = catFilter === 'All' || p.category === catFilter;
+    const matchStat = statFilter === 'ALL' || (statFilter === 'PUBLISHED' ? p.is_published : !p.is_published);
+    return matchSrch && matchCat && matchStat;
   });
+
+  const published = posts.filter(p => p.is_published).length;
+  const drafts    = posts.filter(p => !p.is_published).length;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#0F2340]" style={{ fontFamily: 'Cormorant Garamond, serif' }}>Blog & News</h1>
-          <p className="text-[#8896B3] text-sm">{posts.filter(p => p.is_published).length} published · {posts.filter(p => !p.is_published).length} drafts</p>
+          <h1 className="text-2xl font-bold text-[#0F2340]" style={{ fontFamily: 'Cormorant Garamond, serif' }}>Blog & News Manager</h1>
+          <p className="text-[#8896B3] text-sm">{published} published · {drafts} draft{drafts !== 1 ? 's' : ''}</p>
         </div>
         <Link href="/admin-hck-2025/dashboard/blog/new"
           className="flex items-center gap-2 bg-[#0F2340] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#1B3A6B] transition-colors">
@@ -61,73 +61,96 @@ export default function BlogAdmin() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-5">
-        {['ALL', 'PUBLISHED', 'DRAFT'].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${statusFilter === s ? 'bg-[#0F2340] text-white' : 'bg-white text-[#4A5568] border border-[#D1DCF5]'}`}>
-            {s === 'ALL' ? 'All' : s === 'PUBLISHED' ? 'Published' : 'Drafts'}
+        {/* Status */}
+        {STATUS_OPTS.map(s => (
+          <button key={s} onClick={() => setStatFilter(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${statFilter === s ? 'bg-[#0F2340] text-white' : 'bg-white text-[#4A5568] border border-[#D1DCF5] hover:border-[#0F2340]'}`}>
+            {s === 'ALL' ? `All (${posts.length})` : s === 'PUBLISHED' ? `Published (${published})` : `Drafts (${drafts})`}
           </button>
         ))}
-        <div className="w-px h-7 bg-[#D1DCF5] self-center mx-1" />
-        {CATEGORIES.map(cat => (
-          <button key={cat} onClick={() => setCatFilter(cat)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${catFilter === cat ? 'bg-[#D4A017] text-[#0F2340]' : 'bg-white text-[#4A5568] border border-[#D1DCF5]'}`}>
-            {cat}
+        <div className="h-7 w-px bg-[#D1DCF5] self-center mx-1" />
+        {/* Categories */}
+        {CATEGORIES.map(c => (
+          <button key={c} onClick={() => setCatFilter(c)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${catFilter === c ? 'bg-[#D4A017] text-[#0F2340]' : 'bg-white text-[#4A5568] border border-[#D1DCF5] hover:border-[#D4A017]'}`}>
+            {c}
           </button>
         ))}
       </div>
 
-      {loading ? <div className="text-center py-12 text-[#8896B3]">Loading posts...</div> : (
-        <div className="bg-white rounded-xl shadow-sm border border-[#D1DCF5] overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-[#F8FAFF] border-b border-[#D1DCF5]">
-              <tr>
-                {['Cover', 'Title', 'Category', 'Author', 'Status', 'Date', 'Actions'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[#4A5568] font-semibold text-xs uppercase tracking-wide">{h}</th>
+      {/* Search */}
+      <div className="relative mb-5 max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8896B3]" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search posts…"
+          className="w-full pl-9 pr-4 py-2.5 border border-[#D1DCF5] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]/20 focus:border-[#0F2340]" />
+      </div>
+
+      {loading ? (
+        <div className="bg-white rounded-xl border border-[#D1DCF5] p-12 text-center text-[#8896B3]"><RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 opacity-40" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-xl border border-[#D1DCF5] p-12 text-center text-[#8896B3] text-sm">No posts match your filters.</div>
+      ) : (
+        <div className="bg-white rounded-xl border border-[#D1DCF5] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="bg-[#F8FAFF] border-b border-[#D1DCF5]">
+                <tr>{['Cover', 'Title & Category', 'Author', 'Status', 'Date', 'Actions'].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#4A5568] uppercase tracking-wide">{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody className="divide-y divide-[#F0F4FF]">
+                {filtered.map(post => (
+                  <tr key={post.id} className="hover:bg-[#FAFBFF] transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="relative w-16 h-10 rounded-lg overflow-hidden bg-[#EBF0FB] flex-shrink-0">
+                        {post.cover_image_url && <Image src={post.cover_image_url} alt="" fill className="object-cover" sizes="64px" />}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 max-w-[220px]">
+                      <p className="font-semibold text-[#0F2340] text-xs leading-snug line-clamp-2">{post.title}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="bg-[#EBF0FB] text-[#0F2340] text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Tag className="w-2.5 h-2.5" />{post.category}
+                        </span>
+                        {post.is_featured && <span className="bg-[#FFF8E1] text-[#D4A017] text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5"><Star className="w-2.5 h-2.5" />Featured</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {post.author_image_url && (
+                          <div className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                            <Image src={post.author_image_url} alt="" fill className="object-cover" sizes="24px" />
+                          </div>
+                        )}
+                        <span className="text-xs text-[#4A5568] truncate max-w-[80px]">{post.author_name || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${post.is_published ? 'bg-green-100 text-green-700' : 'bg-[#FEF3C7] text-[#D97706]'}`}>
+                        {post.is_published ? 'Published' : 'Draft'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[#8896B3] text-xs whitespace-nowrap">
+                      {post.published_at ? new Date(post.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <Link href={`/admin-hck-2025/dashboard/blog/${post.id}`}
+                          className="p-1.5 rounded-lg text-[#0F2340] hover:bg-[#EBF0FB] transition-colors"><Edit3 className="w-3.5 h-3.5" /></Link>
+                        <button onClick={() => togglePublished(post.id)}
+                          className={`p-1.5 rounded-lg transition-colors ${post.is_published ? 'text-green-600 hover:bg-green-50' : 'text-[#8896B3] hover:bg-[#F0F4FF]'}`}
+                          title={post.is_published ? 'Unpublish' : 'Publish'}>
+                          {post.is_published ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        </button>
+                        <button onClick={() => deletePost(post.id)}
+                          className="p-1.5 rounded-lg text-[#C8102E] hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F0F4FF]">
-              {filtered.map(post => (
-                <tr key={post.id} className="hover:bg-[#F8FAFF] transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-[#EBF0FB]">
-                      {post.cover_image_url && <Image src={post.cover_image_url} alt="" fill className="object-cover" sizes="56px" />}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 max-w-[200px]">
-                    <p className="font-semibold text-[#0F2340] line-clamp-2 text-xs leading-snug">{post.title}</p>
-                    {post.is_featured && <span className="text-[#D4A017] text-xs flex items-center gap-1 mt-0.5"><Star className="w-3 h-3" />Featured</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="bg-[#EBF0FB] text-[#0F2340] text-xs px-2 py-0.5 rounded-full">{post.category}</span>
-                  </td>
-                  <td className="px-4 py-3 text-[#4A5568] text-xs">{post.author_name}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${post.is_published ? 'bg-green-100 text-green-700' : 'bg-[#FEF3C7] text-[#D97706]'}`}>
-                      {post.is_published ? 'Published' : 'Draft'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-[#8896B3] text-xs">{post.published_at ? new Date(post.published_at).toLocaleDateString() : '—'}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <Link href={`/admin-hck-2025/dashboard/blog/${post.id}`}
-                        className="p-1.5 rounded-lg text-[#0F2340] hover:bg-[#EBF0FB] transition-colors">
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </Link>
-                      <button onClick={() => togglePublished(post.id, post.is_published)}
-                        className={`p-1.5 rounded-lg transition-colors ${post.is_published ? 'text-green-600 hover:bg-green-50' : 'text-[#8896B3] hover:bg-[#F0F4FF]'}`}>
-                        {post.is_published ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                      </button>
-                      <button onClick={() => deletePost(post.id)}
-                        className="p-1.5 rounded-lg text-[#C8102E] hover:bg-red-50 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
