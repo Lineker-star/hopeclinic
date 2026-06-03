@@ -25,9 +25,12 @@ export default function BlogManager() {
 
   const togglePublished = async (id: string) => {
     const post = posts.find(p => p.id === id)!;
-    const updated = { is_published: !post.is_published, published_at: !post.is_published ? new Date().toISOString() : null };
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p));
-    await fetch(`/api/admin/blog/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) }).catch(() => {});
+    const nowPublished = !post.is_published;
+    setPosts(prev => prev.map(p => p.id === id
+      ? { ...p, is_published: nowPublished, published_at: nowPublished ? new Date().toISOString() : p.published_at }
+      : p
+    ));
+    await fetch(`/api/admin/blog/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_published: nowPublished, published_at: nowPublished ? new Date().toISOString() : null }) }).catch(() => {});
   };
 
   const deletePost = async (id: string) => {
