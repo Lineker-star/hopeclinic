@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Mail, MailOpen, Trash2, MessageSquare, RefreshCw, Search, Reply } from 'lucide-react';
 
 interface Message {
@@ -26,9 +26,28 @@ export default function ContactManager() {
   const [noteText, setNoteText] = useState('');
   const [saving,   setSaving]   = useState(false);
 
-  useEffect(() => {
-    fetch(`/api/admin/contact${filter !== 'ALL' ? `?filter=${filter}` : ''}`).then(r => r.ok ? r.json() : null).then(d => setMessages(d?.length ? d : DEMO)).catch(() => setMessages(DEMO)).finally(() => setLoading(false));
+  const fetchMessages = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/admin/contact${filter !== 'ALL' ? `?filter=${filter}` : ''}`);
+      const d = r.ok ? await r.json() as Message[] : null;
+      setMessages(d?.length ? d : DEMO);
+    } catch { setMessages(DEMO); }
+    setLoading(false);
   }, [filter]);
+
+  useEffect(() => {
+    fetchMessages();
+    // Real-time for new incoming messages
+    let channel: unknown = null;
+    import('@/lib/supabase').then(({ supabase }) => {
+      channel = supabase.channel('contact_admin')
+        .on('postgres_changes' as 'postgres_changes', { event: 'INSERT', schema: 'public', table: 'contact_messages' }, fetchMessages)
+        .subscribe();
+    }).catch(() => {});
+    return () => {
+      if (channel) import('@/lib/supabase').then(({ supabase }) => supabase.removeChannel(channel as ReturnType<typeof supabase.channel>));
+    };
+  }, [fetchMessages]);
 
   const markRead = async (id: string) => {
     setMessages(p => p.map(m => m.id === id ? { ...m, is_read: true } : m));

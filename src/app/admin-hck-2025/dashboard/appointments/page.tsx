@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Calendar, Clock, User, CheckCircle, XCircle, AlertCircle, Download, Search, RefreshCw } from 'lucide-react';
 
 interface Appointment {
@@ -39,10 +39,29 @@ export default function AppointmentsManager() {
   const [noteText,  setNoteText]  = useState('');
   const [saving,    setSaving]    = useState(false);
 
-  useEffect(() => {
+  const fetchAppointments = useCallback(async () => {
     const url = statusFilter === 'ALL' ? '/api/admin/appointments' : `/api/admin/appointments?status=${statusFilter}`;
-    fetch(url).then(r => r.ok ? r.json() : null).then(d => setAppointments(d?.length ? d : DEMO)).catch(() => setAppointments(DEMO)).finally(() => setLoading(false));
+    try {
+      const r = await fetch(url);
+      const d = r.ok ? await r.json() as Appointment[] : null;
+      setAppointments(d?.length ? d : DEMO);
+    } catch { setAppointments(DEMO); }
+    setLoading(false);
   }, [statusFilter]);
+
+  useEffect(() => {
+    fetchAppointments();
+    // Real-time subscription for new bookings
+    let channel: unknown = null;
+    import('@/lib/supabase').then(({ supabase }) => {
+      channel = supabase.channel('appointments_admin')
+        .on('postgres_changes' as 'postgres_changes', { event: 'INSERT', schema: 'public', table: 'appointments' }, fetchAppointments)
+        .subscribe();
+    }).catch(() => {});
+    return () => {
+      if (channel) import('@/lib/supabase').then(({ supabase }) => supabase.removeChannel(channel as ReturnType<typeof supabase.channel>));
+    };
+  }, [fetchAppointments]);
 
   const updateStatus = async (id: string, status: string) => {
     setAppointments(p => p.map(a => a.id === id ? { ...a, status } : a));

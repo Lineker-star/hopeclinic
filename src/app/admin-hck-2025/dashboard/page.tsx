@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {
   Calendar, Mail, UserCheck, Users, FileText,
   Image as ImageIcon, MapPin, Clock, TrendingUp,
-  AlertCircle, CheckCircle,
+  AlertCircle, CheckCircle, RefreshCw,
 } from 'lucide-react';
 
 interface Stats {
@@ -49,12 +49,21 @@ export default function DashboardPage() {
   const [stats,   setStats]   = useState<Stats>(EMPTY);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const refresh = () => {
+    setLoading(true);
     fetch('/api/admin/dashboard-stats')
-      .then(r => r.ok ? r.json() : EMPTY)
-      .then(d => setStats(d))
-      .catch(() => {})
+      .then(r => r.ok ? r.json() as Promise<Stats> : Promise.resolve(EMPTY))
+      .then(d => setStats({ appointments: d.appointments ?? 0, pendingAppointments: d.pendingAppointments ?? 0, unreadMessages: d.unreadMessages ?? 0, doctors: d.doctors ?? 0, staff: d.staff ?? 0, publishedPosts: d.publishedPosts ?? 0, galleryItems: d.galleryItems ?? 0, locations: d.locations ?? 0 }))
+      .catch(() => setStats(EMPTY))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    refresh();
+    // Auto-refresh every 30 seconds for live stats
+    const interval = setInterval(refresh, 30_000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cards = STAT_CARDS(stats);
@@ -62,14 +71,22 @@ export default function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Heading */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#0F2340]"
-          style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-          Dashboard Overview
-        </h1>
-        <p className="text-[#8896B3] text-sm mt-1">
-          Welcome back — Hope Clinic Koumé Admin Portal
-        </p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-[#0F2340]"
+            style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+            Dashboard Overview
+          </h1>
+          <p className="text-[#8896B3] text-sm mt-1">
+            Welcome back — Hope Clinic Koumé Admin Portal · auto-refreshes every 30s
+          </p>
+        </div>
+        <button onClick={refresh} disabled={loading}
+          className="flex items-center gap-2 border border-[#D1DCF5] text-[#0F2340] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#EBF0FB] transition-colors disabled:opacity-50"
+          title="Refresh stats">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
       {/* Stats grid */}
