@@ -1,25 +1,43 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Star, X, Save, RefreshCw, Search } from 'lucide-react';
+import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Star, X, Save, RefreshCw, Search, CheckCircle, Upload } from 'lucide-react';
 import { doctors as SEED } from '@/data/doctors';
 
-interface Doctor { id: string; name: string; title_prefix: string; role: string; specialization?: string; bio?: string; image_url?: string; experience_years?: number; languages?: string[]; available_days?: string[]; is_featured: boolean; is_active: boolean; order_index: number; email?: string; phone?: string }
+interface Doctor {
+  id: string; name: string; title_prefix: string; role: string;
+  specialization?: string; bio?: string; image_url?: string;
+  experience_years?: number; languages?: string[]; available_days?: string[];
+  is_featured: boolean; is_active: boolean; order_index: number;
+  email?: string; phone?: string;
+}
 
-const inputCls = 'w-full border border-[#D1DCF5] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]/20 focus:border-[#0F2340]';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const inputCls = 'w-full border border-[#D1DCF5] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]/20 focus:border-[#0F2340]';
 
-function Modal({ doc, onClose, onSave }: { doc: Partial<Doctor>; onClose: () => void; onSave: (d: Partial<Doctor>) => Promise<void> }) {
-  const [form, setForm]   = useState<Partial<Doctor>>(doc);
+function Modal({ doc, onClose, onSave }: {
+  doc: Partial<Doctor>; onClose: () => void; onSave: (d: Partial<Doctor>) => Promise<void>
+}) {
+  const [form, setForm]     = useState<Partial<Doctor>>(doc);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [langInput, setLangInput] = useState('');
   const set = (k: keyof Doctor, v: unknown) => setForm(f => ({ ...f, [k]: v }));
 
-  const addLang = () => { if (!langInput.trim()) return; set('languages', [...(form.languages ?? []), langInput.trim()]); setLangInput(''); };
-  const delLang = (l: string) => set('languages', (form.languages ?? []).filter(x => x !== l));
-  const toggleDay = (d: string) => set('available_days', (form.available_days ?? []).includes(d) ? (form.available_days ?? []).filter(x => x !== d) : [...(form.available_days ?? []), d]);
+  const uploadPhoto = async (file: File) => {
+    setUploading(true);
+    const fd = new FormData(); fd.append('file', file); fd.append('folder', 'doctors');
+    try {
+      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (r.ok) { const { url } = await r.json() as { url: string }; if (url) set('image_url', url); }
+    } catch { /* ignore */ }
+    setUploading(false);
+  };
 
-  const submit = async () => { setSaving(true); await onSave(form); setSaving(false); };
+  const addLang    = () => { if (!langInput.trim()) return; set('languages', [...(form.languages ?? []), langInput.trim()]); setLangInput(''); };
+  const delLang    = (l: string) => set('languages', (form.languages ?? []).filter(x => x !== l));
+  const toggleDay  = (d: string) => set('available_days', (form.available_days ?? []).includes(d) ? (form.available_days ?? []).filter(x => x !== d) : [...(form.available_days ?? []), d]);
+  const submit     = async () => { setSaving(true); await onSave(form); setSaving(false); };
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -31,35 +49,44 @@ function Modal({ doc, onClose, onSave }: { doc: Partial<Doctor>; onClose: () => 
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-[#F0F4FF] text-[#4A5568]"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
-          {/* Photo preview */}
-          {form.image_url && (
-            <div className="flex justify-center">
-              <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-[#EBF0FB]">
-                <Image src={form.image_url} alt="Doctor" fill className="object-cover" sizes="96px" />
+          {/* Photo */}
+          <div className="flex items-start gap-4">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-[#EBF0FB] flex-shrink-0">
+              {form.image_url ? <img src={form.image_url} alt="" className="w-full h-full object-cover" /> :
+                <div className="w-full h-full flex items-center justify-center text-2xl text-[#D1DCF5]">👤</div>}
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-[#0F2340] mb-1">Profile Photo</label>
+              <div className="flex gap-2">
+                <input value={form.image_url ?? ''} onChange={e => set('image_url', e.target.value)}
+                  className={inputCls + ' flex-1'} placeholder="Photo URL" />
+                <label className="flex-shrink-0 flex items-center gap-1 bg-[#EBF0FB] text-[#0F2340] px-3 py-2 rounded-lg text-sm cursor-pointer hover:bg-[#D1DCF5]">
+                  {uploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadPhoto(e.target.files[0])} />
+                </label>
               </div>
             </div>
-          )}
-          <div>
-            <label className="block text-xs font-semibold text-[#0F2340] mb-1">Photo URL</label>
-            <input value={form.image_url ?? ''} onChange={e => set('image_url', e.target.value)} className={inputCls} placeholder="https://…" />
           </div>
+
           <div className="grid grid-cols-3 gap-3">
             <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Title</label>
               <select value={form.title_prefix ?? 'Dr.'} onChange={e => set('title_prefix', e.target.value)} className={inputCls + ' bg-white'}>
                 {['Dr.', 'Prof.', 'Mr.', 'Mrs.', 'Ms.'].map(t => <option key={t}>{t}</option>)}
-              </select>
-            </div>
+              </select></div>
             <div className="col-span-2"><label className="block text-xs font-semibold text-[#0F2340] mb-1">Full Name *</label>
-              <input value={form.name ?? ''} onChange={e => set('name', e.target.value)} className={inputCls} placeholder="e.g. Ginette Bekolo" /></div>
+              <input value={form.name ?? ''} onChange={e => set('name', e.target.value)} className={inputCls} /></div>
           </div>
+
           <div className="grid sm:grid-cols-2 gap-3">
             <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Role / Position</label>
               <input value={form.role ?? ''} onChange={e => set('role', e.target.value)} className={inputCls} /></div>
             <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Specialization</label>
               <input value={form.specialization ?? ''} onChange={e => set('specialization', e.target.value)} className={inputCls} /></div>
           </div>
+
           <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Biography</label>
             <textarea value={form.bio ?? ''} onChange={e => set('bio', e.target.value)} rows={4} className={inputCls + ' resize-none'} /></div>
+
           <div className="grid sm:grid-cols-2 gap-3">
             <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Experience (years)</label>
               <input type="number" value={form.experience_years ?? ''} onChange={e => set('experience_years', +e.target.value)} className={inputCls} /></div>
@@ -80,7 +107,7 @@ function Modal({ doc, onClose, onSave }: { doc: Partial<Doctor>; onClose: () => 
             <div className="flex gap-2">
               <input value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addLang()}
                 placeholder="Add language…" className={inputCls + ' flex-1'} />
-              <button type="button" onClick={addLang} className="px-3 py-2 bg-[#EBF0FB] text-[#0F2340] rounded-lg text-sm font-semibold hover:bg-[#D1DCF5]">+ Add</button>
+              <button type="button" onClick={addLang} className="px-3 py-2 bg-[#EBF0FB] text-[#0F2340] rounded-lg text-sm font-semibold hover:bg-[#D1DCF5]">Add</button>
             </div>
           </div>
 
@@ -113,7 +140,7 @@ function Modal({ doc, onClose, onSave }: { doc: Partial<Doctor>; onClose: () => 
           <button onClick={submit} disabled={saving || !form.name}
             className="flex-1 flex items-center justify-center gap-2 bg-[#0F2340] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#1B3A6B] disabled:opacity-60">
             {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {saving ? 'Saving…' : 'Save Doctor'}
+            {saving ? 'Saving…' : 'Save & Publish'}
           </button>
         </div>
       </div>
@@ -124,30 +151,74 @@ function Modal({ doc, onClose, onSave }: { doc: Partial<Doctor>; onClose: () => 
 export default function DoctorsManager() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modal,   setModal]   = useState<Partial<Doctor> | null>(null);
-  const [search,  setSearch]  = useState('');
+  const [modal, setModal]   = useState<Partial<Doctor> | null>(null);
+  const [search, setSearch] = useState('');
+  const [toast, setToast]   = useState('');
 
-  const toRows = (): Doctor[] => SEED.map(d => ({ id: d.id, name: d.name, title_prefix: d.titlePrefix, role: d.specialization, specialization: d.specialization, bio: d.bio, image_url: d.imageUrl, experience_years: d.experience, languages: d.languages, available_days: d.availableDays, is_featured: false, is_active: d.isActive, order_index: 0 }));
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  useEffect(() => {
-    fetch('/api/admin/doctors').then(r => r.ok ? r.json() : null).then(d => setDoctors(d?.length ? d : toRows())).catch(() => setDoctors(toRows())).finally(() => setLoading(false));
+  const toRows = (): Doctor[] => SEED.map(d => ({
+    id: d.id, name: d.name, title_prefix: d.titlePrefix, role: d.specialization,
+    specialization: d.specialization, bio: d.bio, image_url: d.imageUrl,
+    experience_years: d.experience, languages: d.languages,
+    available_days: d.availableDays, is_featured: false, is_active: d.isActive, order_index: 0,
+  }));
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/doctors');
+      if (r.ok) { const d = await r.json() as Doctor[]; setDoctors(d.length ? d : toRows()); }
+      else setDoctors(toRows());
+    } catch { setDoctors(toRows()); }
+    setLoading(false);
   }, []);
 
-  const toggle    = (id: string) => { setDoctors(p => p.map(d => d.id === id ? { ...d, is_active: !d.is_active } : d)); const item = doctors.find(d => d.id === id)!; fetch(`/api/admin/doctors/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !item.is_active }) }).catch(() => {}); };
-  const remove    = (id: string) => { if (!confirm('Delete this doctor?')) return; setDoctors(p => p.filter(d => d.id !== id)); fetch(`/api/admin/doctors/${id}`, { method: 'DELETE' }).catch(() => {}); };
+  useEffect(() => { load(); }, [load]);
+
+  const toggle = async (id: string) => {
+    const updated = doctors.map(d => d.id === id ? { ...d, is_active: !d.is_active } : d);
+    setDoctors(updated);
+    const item = updated.find(d => d.id === id)!;
+    await fetch(`/api/admin/doctors/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: item.is_active }) }).catch(() => {});
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('Delete this doctor?')) return;
+    setDoctors(p => p.filter(d => d.id !== id));
+    await fetch(`/api/admin/doctors/${id}`, { method: 'DELETE' }).catch(() => {});
+    showToast('Doctor deleted');
+  };
+
   const save = async (form: Partial<Doctor>) => {
     try {
-      const r = await fetch(form.id ? `/api/admin/doctors/${form.id}` : '/api/admin/doctors', { method: form.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-      const d = await r.json();
+      const r = await fetch(form.id ? `/api/admin/doctors/${form.id}` : '/api/admin/doctors', {
+        method: form.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const d = await r.json() as Doctor;
       setDoctors(p => form.id ? p.map(x => x.id === d.id ? d : x) : [...p, d]);
-    } catch { setDoctors(p => form.id ? p.map(x => x.id === form.id ? { ...x, ...form } as Doctor : x) : [...p, { ...form, id: Date.now().toString() } as Doctor]); }
+      showToast('Saved — doctors page updated!');
+    } catch {
+      setDoctors(p => form.id ? p.map(x => x.id === form.id ? { ...x, ...form } as Doctor : x) : [...p, { ...form, id: Date.now().toString() } as Doctor]);
+    }
     setModal(null);
   };
 
-  const filtered = doctors.filter(d => !search || d.name.toLowerCase().includes(search.toLowerCase()) || (d.specialization ?? '').toLowerCase().includes(search.toLowerCase()));
+  const filtered = doctors.filter(d =>
+    !search || d.name.toLowerCase().includes(search.toLowerCase()) ||
+    (d.specialization ?? '').toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div>
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-semibold">
+          <CheckCircle className="w-4 h-4" /> {toast}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#0F2340]" style={{ fontFamily: 'Cormorant Garamond, serif' }}>Doctors Manager</h1>
@@ -159,15 +230,17 @@ export default function DoctorsManager() {
         </button>
       </div>
 
-      {/* Search */}
       <div className="relative mb-5 max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8896B3]" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or specialization…"
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search doctors…"
           className="w-full pl-9 pr-4 py-2.5 border border-[#D1DCF5] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]/20 focus:border-[#0F2340]" />
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-[#D1DCF5] p-12 text-center text-[#8896B3]"><RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 opacity-40" /></div>
+        <div className="bg-white rounded-xl border border-[#D1DCF5] p-12 text-center text-[#8896B3]">
+          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 opacity-40" />
+          <p className="text-sm">Loading from Supabase…</p>
+        </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map(doc => (
@@ -182,14 +255,16 @@ export default function DoctorsManager() {
               </div>
               <div className="p-4">
                 <p className="font-bold text-[#0F2340] text-sm leading-tight">{doc.title_prefix} {doc.name}</p>
-                <p className="text-[#8896B3] text-xs mt-0.5 truncate">{doc.specialization || doc.role}</p>
-                <p className="text-[#8896B3] text-xs mt-0.5">{doc.experience_years ? `${doc.experience_years}+ yrs` : ''}</p>
+                <p className="text-[#8896B3] text-xs mt-0.5 truncate">{doc.specialization ?? doc.role}</p>
+                <p className="text-[#8896B3] text-xs">{doc.experience_years ? `${doc.experience_years}+ yrs` : ''}</p>
                 <div className="flex items-center gap-1.5 mt-3">
-                  <button onClick={() => setModal(doc)} className="flex-1 flex items-center justify-center gap-1 border border-[#D1DCF5] text-[#4A5568] py-1.5 rounded-lg text-xs hover:bg-[#EBF0FB] transition-colors"><Edit3 className="w-3 h-3" /> Edit</button>
+                  <button onClick={() => setModal(doc)} className="flex-1 flex items-center justify-center gap-1 border border-[#D1DCF5] text-[#4A5568] py-1.5 rounded-lg text-xs hover:bg-[#EBF0FB]">
+                    <Edit3 className="w-3 h-3" /> Edit
+                  </button>
                   <button onClick={() => toggle(doc.id)} className={`p-1.5 rounded-lg transition-colors ${doc.is_active ? 'text-green-600 hover:bg-green-50' : 'text-[#8896B3] hover:bg-[#F0F4FF]'}`}>
                     {doc.is_active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => remove(doc.id)} className="p-1.5 rounded-lg text-[#C8102E] hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => remove(doc.id)} className="p-1.5 rounded-lg text-[#C8102E] hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             </div>
