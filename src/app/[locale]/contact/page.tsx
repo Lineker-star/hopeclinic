@@ -3,22 +3,13 @@ import Link from 'next/link';
 import { Phone, Mail, MapPin, Clock, MessageCircle, ExternalLink, AlertCircle } from 'lucide-react';
 import { FaFacebookF, FaInstagram } from 'react-icons/fa';
 import ContactMapWrapper from '@/components/map/ContactMapWrapper';
+import ContactForm from '@/components/contact/ContactForm';
 
 export const metadata: Metadata = {
   title: 'Contact Us',
   description: 'Contact Hope Clinic Koumé — +237 650 441 422, Quartier Koumé-Bonis, Bertoua, East Region, Cameroon. Emergency care 24/7.',
 };
 
-const subjects = [
-  'General Inquiry',
-  'Appointment Request',
-  'Medical Information',
-  'Billing & Payments',
-  'Partnership / Donation',
-  'Media & Press',
-  'Emergency',
-  'Other',
-];
 
 export default function ContactPage() {
   return (
@@ -188,51 +179,7 @@ export default function ContactPage() {
               </h2>
               <p className="text-[#8896B3] text-sm mt-4 mb-6">We typically respond within 24 hours</p>
 
-              <form className="space-y-4" action="#" method="POST">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#2D2D2D] mb-1">Full Name *</label>
-                    <input type="text" name="name" required
-                      className="w-full border border-[#D1DCF5] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B]/25 focus:border-[#1B3A6B] transition-all"
-                      placeholder="Your full name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#2D2D2D] mb-1">Email *</label>
-                    <input type="email" name="email" required
-                      className="w-full border border-[#D1DCF5] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B]/25 focus:border-[#1B3A6B] transition-all"
-                      placeholder="your@email.com"
-                    />
-                  </div>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#2D2D2D] mb-1">Phone</label>
-                    <input type="tel" name="phone"
-                      className="w-full border border-[#D1DCF5] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B]/25 focus:border-[#1B3A6B] transition-all"
-                      placeholder="+237 ..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#2D2D2D] mb-1">Subject</label>
-                    <select name="subject"
-                      className="w-full border border-[#D1DCF5] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B]/25 focus:border-[#1B3A6B] bg-white transition-all">
-                      {subjects.map((s) => <option key={s}>{s}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#2D2D2D] mb-1">Message *</label>
-                  <textarea name="message" required rows={5}
-                    className="w-full border border-[#D1DCF5] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B]/25 focus:border-[#1B3A6B] resize-none transition-all"
-                    placeholder="Tell us how we can help you..."
-                  />
-                </div>
-                <button type="submit"
-                  className="w-full bg-[#1B3A6B] text-white py-3 rounded-xl font-semibold hover:bg-[#2952A3] transition-colors text-sm">
-                  Send Message
-                </button>
-              </form>
+              <ContactForm />
             </div>
 
             {/* Partner Links */}

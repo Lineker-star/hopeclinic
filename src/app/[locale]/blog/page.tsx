@@ -2,18 +2,31 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { blogPosts } from '@/data/blog-posts';
+import { blogPosts as SEED } from '@/data/blog-posts';
 import { Clock, Tag, ArrowRight, Search } from 'lucide-react';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 
 const categories = ['All', 'Events & Campaigns', 'Health Awareness', 'Clinic News', 'Medical Achievements', 'Partnerships'];
+
+interface Post { id: string; slug: string; title: string; excerpt: string; cover_image_url?: string; coverImage?: string; category: string; author_name?: string; author?: string; author_image_url?: string; authorImage?: string; published_at?: string; publishedAt?: string; reading_time_minutes?: number; readingTime?: number }
+
+const seedPosts: Post[] = SEED.map(p => ({ id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt, cover_image_url: p.coverImage, category: p.category, author_name: p.author, author_image_url: p.authorImage, published_at: p.publishedAt, reading_time_minutes: p.readingTime }));
 
 export default function BlogPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [query, setQuery] = useState('');
 
-  const filtered = blogPosts.filter((p) => {
+  const { data: posts } = useSupabaseData<Post>('blog_posts', {
+    filter: { is_published: true },
+    orderBy: 'published_at',
+    orderAsc: false,
+    fallback: seedPosts,
+    realtimeTable: 'blog_posts',
+  });
+
+  const filtered = posts.filter((p) => {
     const matchesCat = activeCategory === 'All' || p.category === activeCategory;
-    const matchesQ   = !query || p.title.toLowerCase().includes(query.toLowerCase()) || p.excerpt.toLowerCase().includes(query.toLowerCase());
+    const matchesQ   = !query || p.title.toLowerCase().includes(query.toLowerCase()) || (p.excerpt ?? '').toLowerCase().includes(query.toLowerCase());
     return matchesCat && matchesQ;
   });
 
@@ -40,9 +53,9 @@ export default function BlogPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Featured */}
-        <Link href={`/blog/${blogPosts[0].slug}`} className="group block mb-10">
+        <Link href={`/blog/${posts[0]?.slug ?? ""}`} className="group block mb-10">
           <div className="relative rounded-2xl overflow-hidden shadow-xl h-72 sm:h-96">
-            <Image src={blogPosts[0].coverImage} alt={blogPosts[0].title}
+            <Image src={(posts[0]?.cover_image_url ?? posts[0]?.coverImage ?? "")} alt={(posts[0]?.title ?? "")}
               fill className="object-cover group-hover:scale-105 transition-transform duration-700"
               sizes="100vw" priority
             />
@@ -53,13 +66,13 @@ export default function BlogPage() {
               </span>
               <h2 className="text-white text-2xl sm:text-3xl font-bold mb-2 group-hover:text-[#D4A017] transition-colors"
                 style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-                {blogPosts[0].title}
+                {(posts[0]?.title ?? "")}
               </h2>
-              <p className="text-white/70 text-sm line-clamp-2">{blogPosts[0].excerpt}</p>
+              <p className="text-white/70 text-sm line-clamp-2">{(posts[0]?.excerpt ?? "")}</p>
               <div className="flex items-center gap-3 mt-3 text-white/50 text-xs">
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{blogPosts[0].readingTime} min read</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{(posts[0]?.reading_time_minutes ?? posts[0]?.readingTime ?? 5)} min read</span>
                 <span>•</span>
-                <span>{new Date(blogPosts[0].publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span>{new Date((posts[0]?.published_at ?? posts[0]?.publishedAt ?? "")).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               </div>
             </div>
           </div>
@@ -100,7 +113,7 @@ export default function BlogPage() {
               <article key={post.id}
                 className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all group border border-[#D1DCF5] hover:border-[#1B3A6B]">
                 <div className="relative h-48 overflow-hidden">
-                  <Image src={post.coverImage} alt={post.title}
+                  <Image src={(post.cover_image_url ?? post.coverImage ?? "")} alt={post.title}
                     fill className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   />
@@ -112,9 +125,9 @@ export default function BlogPage() {
                 </div>
                 <div className="p-5">
                   <div className="flex items-center gap-2 text-[#8896B3] text-xs mb-2">
-                    <Clock className="w-3 h-3" />{post.readingTime} min read
+                    <Clock className="w-3 h-3" />{(post.reading_time_minutes ?? post.readingTime ?? 5)} min read
                     <span>•</span>
-                    {new Date(post.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date((post.published_at ?? post.publishedAt ?? "")).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </div>
                   <h3 className="font-bold text-[#1A1A2E] text-base mb-2 line-clamp-2 group-hover:text-[#1B3A6B] transition-colors"
                     style={{ fontFamily: 'Cormorant Garamond, serif' }}>
@@ -124,9 +137,9 @@ export default function BlogPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="relative w-7 h-7 rounded-full overflow-hidden bg-[#EBF0FB]">
-                        <Image src={post.authorImage} alt={post.author} fill className="object-cover" sizes="28px" />
+                        <Image src={(post.author_image_url ?? post.authorImage ?? "")} alt={(post.author_name ?? post.author ?? "")} fill className="object-cover" sizes="28px" />
                       </div>
-                      <span className="text-[#4A5568] text-xs font-medium truncate max-w-[100px]">{post.author}</span>
+                      <span className="text-[#4A5568] text-xs font-medium truncate max-w-[100px]">{(post.author_name ?? post.author ?? "")}</span>
                     </div>
                     <Link href={`/blog/${post.slug}`}
                       className="inline-flex items-center gap-1 text-[#1B3A6B] text-sm font-semibold hover:text-[#D4A017] transition-colors">

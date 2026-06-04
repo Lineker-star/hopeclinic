@@ -1,19 +1,21 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getAdminSession } from '@/lib/admin/auth';
+import { requireAdmin } from '@/lib/admin/crud';
 
 export async function GET(req: NextRequest) {
-  const status = req.nextUrl.searchParams.get('status');
-  let query = supabaseAdmin.from('contact_messages').select('*').order('created_at', { ascending: false });
-  if (status) query = query.eq('status', status);
-  const { data } = await query;
+  const filter = req.nextUrl.searchParams.get('filter');
+  let q = supabaseAdmin.from('contact_messages').select('*').order('created_at', { ascending: false });
+  if (filter === 'UNREAD')   q = q.eq('is_read', false) as typeof q;
+  if (filter === 'UNREPLIED') q = q.eq('is_replied', false) as typeof q;
+  if (filter === 'REPLIED')  q = q.eq('is_replied', true) as typeof q;
+  const { data, error } = await q;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 
+// Public: allow anyone to submit a contact message
 export async function POST(req: NextRequest) {
-  const session = await getAdminSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const body = await req.json();
   const { data, error } = await supabaseAdmin.from('contact_messages').insert(body).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

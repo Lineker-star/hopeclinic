@@ -1,21 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { getAdminSession } from '@/lib/admin/auth';
+import { NextRequest } from 'next/server';
+import { listRows, insertRow } from '@/lib/admin/crud';
 
-export async function GET(req: NextRequest) {
-  const status = req.nextUrl.searchParams.get('status');
-  let query = supabaseAdmin.from('doctors').select('*').order('created_at', { ascending: false });
-  if (status) query = query.eq('status', status);
-  const { data } = await query;
-  return NextResponse.json(data ?? []);
-}
-
-export async function POST(req: NextRequest) {
-  const session = await getAdminSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const body = await req.json();
-  const { data, error } = await supabaseAdmin.from('doctors').insert(body).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
-}
+export const GET  = () => listRows('doctors', { order: 'order_index' });
+export const POST = (req: NextRequest) => req.json().then(b => insertRow('doctors', b));

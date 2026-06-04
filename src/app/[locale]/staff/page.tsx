@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { staffByCategory, staffCounts } from '@/data/staff';
+import { staffByCategory, staffCounts, staff as SEED_STAFF } from '@/data/staff';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import type { StaffMember } from '@/types';
 import type { StaffCategory } from '@/types';
 
 const tabs: { key: StaffCategory; label: string; labelFr: string; emoji: string; total: number }[] = [
@@ -25,7 +27,14 @@ const badgeColors: Record<StaffCategory, string> = {
 
 export default function StaffPage() {
   const [activeTab, setActiveTab] = useState<StaffCategory>('TOP_ADMINISTRATION');
-  const members = staffByCategory[activeTab];
+
+  const { data: allStaff } = useSupabaseData<StaffMember>('staff', {
+    filter: { is_active: true },
+    orderBy: 'order_index',
+    fallback: SEED_STAFF,
+  });
+
+  const members = allStaff.filter(s => s.category === activeTab).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const activeInfo = tabs.find(t => t.key === activeTab)!;
 
   return (
