@@ -90,7 +90,7 @@ export default function DashboardPage() {
               <div className="min-w-0">
                 <p className="text-2xl font-bold text-[#0F2340] leading-tight"
                   style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-                  {loading ? '—' : value.toLocaleString()}
+                  {loading ? '—' : (value ?? 0).toLocaleString()}
                 </p>
                 <p className="text-[#8896B3] text-xs leading-tight truncate">{label}</p>
               </div>
