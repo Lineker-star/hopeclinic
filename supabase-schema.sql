@@ -251,6 +251,11 @@ ALTER PUBLICATION supabase_realtime ADD TABLE appointments;
 ALTER PUBLICATION supabase_realtime ADD TABLE hope_clinic_locations;
 ALTER PUBLICATION supabase_realtime ADD TABLE doctors;
 ALTER PUBLICATION supabase_realtime ADD TABLE gallery_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE departments;
+ALTER PUBLICATION supabase_realtime ADD TABLE staff;
+ALTER PUBLICATION supabase_realtime ADD TABLE testimonials;
+ALTER PUBLICATION supabase_realtime ADD TABLE partners;
+ALTER PUBLICATION supabase_realtime ADD TABLE site_settings;
 
 -- ── Supabase Storage bucket ──
 -- Run this separately in Supabase dashboard:

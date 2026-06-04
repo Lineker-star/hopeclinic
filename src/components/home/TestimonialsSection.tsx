@@ -4,13 +4,43 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { viewportOnce } from '@/lib/animations';
-import { testimonials } from '@/data/testimonials';
+import { testimonials as seedTestimonials } from '@/data/testimonials';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+
+interface TestimonialRow {
+  id: string;
+  patient_name?: string; name?: string;
+  patient_location?: string; location?: string;
+  content?: string; text?: string;
+  rating: number;
+  image_url?: string; imageUrl?: string;
+}
+
+const seedFallback: TestimonialRow[] = seedTestimonials.map(t => ({
+  id: t.id, name: t.name, location: t.location,
+  text: t.text, rating: t.rating, imageUrl: t.imageUrl,
+}));
 
 export default function TestimonialsSection() {
+  const { data: rows } = useSupabaseData<TestimonialRow>('testimonials', {
+    filter: { is_active: true },
+    orderBy: 'order_index',
+    fallback: seedFallback,
+    realtimeTable: 'testimonials',
+  });
+
   const [current, setCurrent] = useState(0);
-  const prev = () => setCurrent((c) => (c - 1 + testimonials.length) % testimonials.length);
-  const next = () => setCurrent((c) => (c + 1) % testimonials.length);
-  const t = testimonials[current];
+  const safe = current >= rows.length ? 0 : current;
+  const prev = () => setCurrent((c) => (c - 1 + rows.length) % rows.length);
+  const next = () => setCurrent((c) => (c + 1) % rows.length);
+  const row  = rows[safe];
+  const t = {
+    name:     row?.patient_name  ?? row?.name     ?? '',
+    location: row?.patient_location ?? row?.location ?? '',
+    text:     row?.content       ?? row?.text     ?? '',
+    rating:   row?.rating        ?? 5,
+    imageUrl: row?.image_url     ?? row?.imageUrl ?? '',
+  };
 
   return (
     <section className="py-20 bg-[#F0F4FF] african-pattern">
@@ -58,9 +88,9 @@ export default function TestimonialsSection() {
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div className="flex gap-2">
-              {testimonials.map((_, i) => (
+              {rows.map((_, i) => (
                 <button key={i} onClick={() => setCurrent(i)}
-                  className={`h-2 rounded-full transition-all ${i === current ? 'bg-[#0F2340] w-6' : 'bg-[#D1DCF5] w-2'}`} />
+                  className={`h-2 rounded-full transition-all ${i === safe ? 'bg-[#0F2340] w-6' : 'bg-[#D1DCF5] w-2'}`} />
               ))}
             </div>
             <button onClick={next}

@@ -3,8 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerContainer, viewportOnce } from '@/lib/animations';
 
-// Real 10-year report data — 23 campaigns
-const stats = [
+const DEFAULT_STATS = [
   { value: 68791,  suffix: '',   label: 'Patients Treated (10 yrs)' },
   { value: 1135,   suffix: '+',  label: 'Surgeries Performed'       },
   { value: 1576,   suffix: '+',  label: 'Births / Deliveries'       },
@@ -43,6 +42,26 @@ function Counter({ target, suffix }: { target: number; suffix: string }) {
 }
 
 export default function StatsSection() {
+  const [stats, setStats] = useState(DEFAULT_STATS);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const { data } = await supabase.from('site_settings').select('value').eq('key', 'home_stats').single();
+        if (Array.isArray(data?.value) && data.value.length > 0) {
+          const parsed = (data.value as Array<{ key: string; value: string; label: string }>).map(s => ({
+            value:  parseInt(String(s.value).replace(/[^0-9]/g, '')) || 0,
+            suffix: String(s.value).replace(/[0-9,]/g, '').trim(),
+            label:  s.label,
+          }));
+          setStats(parsed);
+        }
+      } catch { /* keep defaults */ }
+    };
+    load();
+  }, []);
+
   return (
     <section className="bg-[#0F2340] text-white py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

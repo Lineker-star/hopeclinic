@@ -2,28 +2,69 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ChevronDown, Phone } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-// African healthcare images — Unsplash free license
-const heroImages = [
-  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1920&q=80', // African doctor consultation
-  'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1920&q=80',   // African maternity care
-  'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=1920&q=80',// African nurse with patient
-  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=1920&q=80',// African pediatric care
+const DEFAULT_IMAGES = [
+  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1920&q=80',
+  'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1920&q=80',
+  'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=1920&q=80',
+  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=1920&q=80',
 ];
+const DEFAULT_HERO = {
+  badge:    'CMFI Mercy Works — Hope Clinic Koumé',
+  title:    'Quality Medical Care',
+  titleItalic: 'at Our Modern Clinic',
+  subtitle: 'With our modern facilities and skilled medical staff, we provide quality care in a comfortable and healing environment.',
+  cta1: 'Book Appointment',
+  cta2: 'View Our Services',
+};
 
 export default function HeroSection() {
-  const [current, setCurrent] = useState(0);
+  const [current,    setCurrent]    = useState(0);
+  const [images,     setImages]     = useState<string[]>(DEFAULT_IMAGES);
+  const [hero,       setHero]       = useState(DEFAULT_HERO);
 
   useEffect(() => {
-    const t = setInterval(() => setCurrent((c) => (c + 1) % heroImages.length), 5500);
-    return () => clearInterval(t);
+    const load = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const [{ data: hd }, { data: id }] = await Promise.all([
+          supabase.from('site_settings').select('value').eq('key', 'home_hero').single(),
+          supabase.from('site_settings').select('value').eq('key', 'home_hero_images').single(),
+        ]);
+        if (hd?.value) {
+          const v = hd.value as Record<string, string>;
+          setHero(prev => ({
+            ...prev,
+            badge:    v.badge    ?? prev.badge,
+            title:    v.title    ?? prev.title,
+            subtitle: v.subtitle ?? prev.subtitle,
+            cta1:     v.cta1     ?? prev.cta1,
+            cta2:     v.cta2     ?? prev.cta2,
+          }));
+        }
+        if (Array.isArray(id?.value)) {
+          const active = (id.value as Array<{ url: string; is_active: boolean; order_index: number }>)
+            .filter(x => x.is_active)
+            .sort((a, b) => a.order_index - b.order_index)
+            .map(x => x.url)
+            .filter(Boolean);
+          if (active.length > 0) setImages(active);
+        }
+      } catch { /* keep defaults */ }
+    };
+    load();
   }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setCurrent((c) => (c + 1) % images.length), 5500);
+    return () => clearInterval(t);
+  }, [images.length]);
 
   return (
     <section className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
       {/* Background slideshow */}
-      {heroImages.map((img, i) => (
+      {images.map((img, i) => (
         <div key={img} className="absolute inset-0 transition-opacity duration-1500"
           style={{ opacity: i === current ? 1 : 0 }}>
           <div className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -42,7 +83,7 @@ export default function HeroSection() {
           transition={{ duration: 0.6 }}
           className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
           <span className="w-2 h-2 rounded-full bg-[#D4A017] animate-pulse inline-block" />
-          CMFI Mercy Works — Hope Clinic Koumé
+          {hero.badge}
         </motion.div>
 
         <motion.h1
@@ -51,8 +92,8 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: 0.1 }}
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 leading-tight"
           style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-          Quality Medical Care<br />
-          <span className="text-[#D4A017] italic">at Our Modern Clinic</span>
+          {hero.title}<br />
+          <span className="text-[#D4A017] italic">{hero.titleItalic ?? 'at Our Modern Clinic'}</span>
         </motion.h1>
 
         <motion.p
@@ -60,8 +101,7 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
           className="text-base sm:text-lg md:text-xl text-white/85 mb-8 max-w-2xl mx-auto">
-          With our modern facilities and skilled medical staff, we provide quality care
-          in a comfortable and healing environment.
+          {hero.subtitle}
         </motion.p>
 
         <motion.div
@@ -71,11 +111,11 @@ export default function HeroSection() {
           className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/booking"
             className="bg-[#D4A017] text-[#0F2340] px-8 py-3.5 rounded-xl font-bold text-base hover:bg-[#F5C842] transition-all shadow-lg hover:scale-105 inline-flex items-center justify-center gap-2">
-            Book Appointment
+            {hero.cta1}
           </Link>
           <Link href="/services"
             className="bg-white/15 backdrop-blur-sm text-white border border-white/30 px-8 py-3.5 rounded-xl font-semibold text-base hover:bg-white/25 transition-all inline-flex items-center justify-center gap-2">
-            View Our Services
+            {hero.cta2}
           </Link>
         </motion.div>
 
@@ -98,7 +138,7 @@ export default function HeroSection() {
 
       {/* Slide dots */}
       <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {heroImages.map((_, i) => (
+        {images.map((_, i) => (
           <button key={i} onClick={() => setCurrent(i)}
             className={`h-2 rounded-full transition-all ${i === current ? 'bg-[#D4A017] w-6' : 'bg-white/40 w-2'}`} />
         ))}

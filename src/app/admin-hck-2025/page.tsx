@@ -24,8 +24,7 @@ export default function AdminLoginPage() {
         setError(data.error || 'Invalid credentials');
         return;
       }
-      // Always go to verify-otp (TOTP via Google Authenticator)
-      router.push('/admin-hck-2025/verify-otp');
+      router.push('/admin-hck-2025/dashboard');
     } catch {
       setError('Connection error. Please try again.');
     } finally {
@@ -82,7 +81,7 @@ export default function AdminLoginPage() {
         </form>
 
         <p className="text-center mt-6 text-xs text-gray-400">
-          You will be asked for your Google Authenticator code next.
+          Hope Clinic Koumé — Admin Portal
         </p>
       </div>
     </div>
