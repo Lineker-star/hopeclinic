@@ -1,14 +1,25 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
-import { getAdminSession } from '@/lib/admin/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
-export async function GET() {
-  const session = await getAdminSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  return NextResponse.json({
-    name:        session.name,
-    email:       session.email,
-    role:        session.role,
-    permissions: session.permissions,
-  });
+const SECRET = new TextEncoder().encode(
+  process.env.ADMIN_JWT_SECRET || 'fallback-dev-secret-change-in-production'
+);
+
+export async function GET(req: NextRequest) {
+  const token = req.cookies.get('admin_session')?.value;
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  try {
+    const { payload } = await jwtVerify(token, SECRET);
+    return NextResponse.json({
+      name:        payload.name,
+      email:       payload.email,
+      role:        payload.role,
+      permissions: payload.permissions,
+    });
+  } catch {
+    return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
+  }
 }

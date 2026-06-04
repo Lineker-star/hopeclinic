@@ -1,212 +1,183 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { AlertCircle, CheckCircle, RotateCcw } from 'lucide-react';
 
-const DIGIT_COUNT = 6;
-const MAX_ATTEMPTS = 3;
-const RESEND_COOLDOWN = 60;
+// Known TOTP secret for this deployment — QR code pre-generated from it
+const TOTP_URI =
+  'otpauth://totp/HopeClinic:admin@hopeclinic.koume.org?secret=JBSWY3DPEHPK3PXP&issuer=HopeClinic';
 
 export default function VerifyOTPPage() {
-  const router = useRouter();
-  const [digits, setDigits]     = useState<string[]>(Array(DIGIT_COUNT).fill(''));
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
-  const [success, setSuccess]   = useState(false);
+  const router  = useRouter();
+  const [digits,   setDigits]   = useState(['', '', '', '', '', '']);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+  const [success,  setSuccess]  = useState(false);
+  const [qrSrc,    setQrSrc]    = useState('');
   const [attempts, setAttempts] = useState(0);
   const [cooldown, setCooldown] = useState(0);
-  const inputRefs = Array.from({ length: DIGIT_COUNT }, () => useRef<HTMLInputElement>(null));
+  const inputRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
 
-  // Focus first box on mount
-  useEffect(() => { inputRefs[0].current?.focus(); }, []);
+  // Generate QR code on client using qrcode
+  useEffect(() => {
+    import('qrcode').then(QRCode => {
+      QRCode.default.toDataURL(TOTP_URI, { width: 220, margin: 2 }).then(setQrSrc).catch(() => {});
+    }).catch(() => {});
+    inputRefs[0].current?.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Resend countdown
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setTimeout(() => setCooldown(c => c - 1), 1000);
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  const locked = attempts >= MAX_ATTEMPTS;
-
   const verify = useCallback(async (code: string) => {
-    if (loading || locked) return;
+    if (loading || attempts >= 3) return;
     setLoading(true);
     setError('');
     try {
       const res  = await fetch('/api/admin/auth/verify-otp', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ otp: code }),
+        body:    JSON.stringify({ otp: code }),
       });
       const data = await res.json();
       if (!res.ok) {
         const next = attempts + 1;
         setAttempts(next);
         setError(
-          next >= MAX_ATTEMPTS
-            ? 'Too many failed attempts. Please go back and log in again.'
-            : `Incorrect code. ${MAX_ATTEMPTS - next} attempt${MAX_ATTEMPTS - next === 1 ? '' : 's'} remaining.`
+          next >= 3
+            ? 'Too many attempts. Go back and log in again.'
+            : `${data.error || 'Invalid code.'} ${3 - next} attempt${3 - next === 1 ? '' : 's'} left.`
         );
-        setDigits(Array(DIGIT_COUNT).fill(''));
+        setDigits(['', '', '', '', '', '']);
         setTimeout(() => inputRefs[0].current?.focus(), 50);
       } else {
         setSuccess(true);
-        setTimeout(() => router.push('/admin-hck-2025/dashboard'), 900);
+        setTimeout(() => router.push('/admin-hck-2025/dashboard'), 800);
       }
     } catch {
-      setError('Network error. Please try again.');
+      setError('Network error. Try again.');
     } finally {
       setLoading(false);
     }
-  }, [loading, locked, attempts, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, attempts, router]);
 
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d?$/.test(value)) return;                    // digits only
+  const handleChange = (i: number, val: string) => {
+    if (!/^\d?$/.test(val)) return;
     const next = [...digits];
-    next[index] = value;
+    next[i] = val;
     setDigits(next);
-    if (value && index < DIGIT_COUNT - 1) {
-      inputRefs[index + 1].current?.focus();             // advance
-    }
-    if (next.every(d => d !== '')) {
-      verify(next.join(''));                             // auto-submit when full
-    }
+    if (val && i < 5) inputRefs[i + 1].current?.focus();
+    if (next.every(d => d !== '')) verify(next.join(''));
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !digits[index] && index > 0) {
-      inputRefs[index - 1].current?.focus();
-    }
-    if (e.key === 'ArrowLeft'  && index > 0)              inputRefs[index - 1].current?.focus();
-    if (e.key === 'ArrowRight' && index < DIGIT_COUNT - 1) inputRefs[index + 1].current?.focus();
+  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) inputRefs[i - 1].current?.focus();
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, DIGIT_COUNT);
-    if (!pasted) return;
-    const next = Array(DIGIT_COUNT).fill('');
-    pasted.split('').forEach((ch, i) => { next[i] = ch; });
-    setDigits(next);
-    const focusIdx = Math.min(pasted.length, DIGIT_COUNT - 1);
-    inputRefs[focusIdx].current?.focus();
-    if (pasted.length === DIGIT_COUNT) verify(pasted);
-  };
-
-  const handleResend = () => {
-    if (cooldown > 0) return;
-    setCooldown(RESEND_COOLDOWN);
-    setError('');
-    setAttempts(0);
-    setDigits(Array(DIGIT_COUNT).fill(''));
-    setTimeout(() => inputRefs[0].current?.focus(), 50);
-    // Navigate back to login to re-trigger OTP send
-    router.push('/admin-hck-2025');
-  };
+  const locked = attempts >= 3;
 
   return (
     <div className="min-h-screen bg-[#0F2340] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="relative w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden bg-white p-2 shadow-xl">
-            <Image
-              src="/images/Hope_Clinic_logo.jpg"
-              alt="Hope Clinic Koumé"
-              fill className="object-contain" sizes="80px"
-            />
-          </div>
+      <div className="w-full max-w-lg">
+        {/* Header */}
+        <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-white"
-            style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
             Two-Factor Verification
           </h1>
-          <p className="text-white/50 text-sm mt-1">
-            Enter the 6-digit code sent to your email
-          </p>
+          <p className="text-white/60 text-sm mt-1">Hope Clinic Admin Portal</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-
-          {/* Success state */}
           {success ? (
-            <div className="flex flex-col items-center py-6 gap-4">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="w-9 h-9 text-green-600" />
+            <div className="text-center py-8">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-9 h-9 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-              <p className="text-[#0F2340] font-bold text-lg">Verified! Redirecting…</p>
+              <p className="text-[#0F2340] font-bold text-lg">Verified! Redirecting to dashboard...</p>
             </div>
           ) : (
             <>
-              {/* Error */}
+              {/* QR code section */}
+              <div className="bg-[#F8FAFF] rounded-xl p-5 mb-6 border border-[#D1DCF5]">
+                <p className="text-sm font-semibold text-[#0F2340] mb-3 text-center">
+                  Step 1 — Scan with Google Authenticator
+                </p>
+                <div className="flex justify-center mb-3">
+                  {qrSrc ? (
+                    <img src={qrSrc} alt="QR Code for Google Authenticator" className="rounded-lg shadow-sm" style={{ width: 200, height: 200 }} />
+                  ) : (
+                    <div className="w-[200px] h-[200px] bg-[#EBF0FB] rounded-lg flex items-center justify-center">
+                      <span className="text-[#8896B3] text-xs">Loading QR...</span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-[#8896B3] mb-1">Or enter this secret manually:</p>
+                  <code className="text-xs font-mono bg-[#EBF0FB] text-[#0F2340] px-3 py-1.5 rounded-lg font-bold tracking-widest">
+                    JBSWY3DPEHPK3PXP
+                  </code>
+                </div>
+              </div>
+
+              {/* Code input */}
+              <p className="text-sm font-semibold text-[#0F2340] mb-3 text-center">
+                Step 2 — Enter the 6-digit code from the app
+              </p>
+
               {error && (
-                <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-5 text-sm">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span>{error}</span>
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-4 text-sm text-center">
+                  {error}
                 </div>
               )}
 
-              {/* Digit inputs */}
-              <div className="flex justify-center gap-3 mb-6" onPaste={handlePaste}>
-                {digits.map((digit, i) => (
-                  <input
-                    key={i}
-                    ref={inputRefs[i]}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
+              <div className="flex justify-center gap-2 mb-5">
+                {digits.map((d, i) => (
+                  <input key={i} ref={inputRefs[i]}
+                    type="text" inputMode="numeric" maxLength={1} value={d}
                     disabled={loading || locked}
                     onChange={e => handleChange(i, e.target.value)}
                     onKeyDown={e => handleKeyDown(i, e)}
                     className={[
-                      'w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all',
-                      'focus:outline-none focus:border-[#0F2340] focus:ring-2 focus:ring-[#0F2340]/20',
-                      'disabled:opacity-40 disabled:cursor-not-allowed',
-                      digit ? 'border-[#0F2340] bg-[#EBF0FB]' : 'border-[#D1DCF5]',
+                      'w-11 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all',
+                      'focus:outline-none focus:border-[#0F2340] focus:ring-2 focus:ring-[#0F2340]/15',
+                      'disabled:opacity-40',
+                      d ? 'border-[#0F2340] bg-[#EBF0FB]' : 'border-[#D1DCF5] bg-white',
                     ].join(' ')}
                   />
                 ))}
               </div>
 
-              {/* Loading */}
               {loading && (
                 <div className="flex justify-center mb-4">
                   <span className="w-6 h-6 border-2 border-[#0F2340]/20 border-t-[#0F2340] rounded-full animate-spin" />
                 </div>
               )}
 
-              {/* Resend */}
-              <div className="text-center text-sm text-[#8896B3]">
-                Didn&apos;t receive a code?{' '}
+              {!locked && (
                 <button
-                  onClick={handleResend}
-                  disabled={cooldown > 0 || locked}
-                  className="inline-flex items-center gap-1 text-[#0F2340] font-semibold hover:underline disabled:opacity-40 disabled:no-underline transition-opacity"
+                  onClick={() => verify(digits.join(''))}
+                  disabled={loading || digits.some(d => !d)}
+                  className="w-full py-3 bg-[#0F2340] text-white rounded-xl font-bold hover:bg-[#1B3A6B] transition-colors disabled:opacity-50"
                 >
-                  {cooldown > 0
-                    ? `Resend in ${cooldown}s`
-                    : <><RotateCcw className="w-3 h-3" /> Resend Code</>
-                  }
+                  Verify Code
                 </button>
-              </div>
+              )}
 
-              {/* Back link */}
               <p className="text-center text-xs text-[#8896B3] mt-4">
-                Wrong account?{' '}
-                <a href="/admin-hck-2025" className="text-[#0F2340] font-semibold hover:underline">
+                <a href="/admin-hck-2025" className="hover:text-[#0F2340] hover:underline transition-colors">
                   ← Back to login
                 </a>
               </p>
             </>
           )}
         </div>
-
-        <p className="text-center text-white/20 text-xs mt-6">
-          Code expires in 10 minutes · Max {MAX_ATTEMPTS} attempts
-        </p>
       </div>
     </div>
   );

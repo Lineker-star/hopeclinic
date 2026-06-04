@@ -37,6 +37,29 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   return verifyAdminToken(token);
 }
 
-export function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+/** Generate a new TOTP secret (base32) */
+export async function generateTotpSecret(): Promise<string> {
+  const speakeasy = await import('speakeasy');
+  return speakeasy.default.generateSecret({ length: 20 }).base32;
+}
+
+/** Verify a TOTP token against a base32 secret */
+export async function verifyTotpToken(secret: string, token: string): Promise<boolean> {
+  try {
+    const speakeasy = await import('speakeasy');
+    return speakeasy.default.totp.verify({ secret, encoding: 'base32', token: token.replace(/\s/g, ''), window: 1 });
+  } catch {
+    return false;
+  }
+}
+
+/** Generate a TOTP otpauth URI for QR code */
+export async function getTotpUri(secret: string, email: string): Promise<string> {
+  return `otpauth://totp/HopeClinic:${encodeURIComponent(email)}?secret=${secret}&issuer=HopeClinic`;
+}
+
+/** Generate a QR code data URL from a TOTP URI */
+export async function generateQrCodeDataUrl(uri: string): Promise<string> {
+  const QRCode = await import('qrcode');
+  return QRCode.default.toDataURL(uri, { width: 256, margin: 2 });
 }

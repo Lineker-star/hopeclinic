@@ -1,31 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './src/i18n/routing';
-import { verifyAdminToken } from './src/lib/admin/auth';
+import { jwtVerify } from 'jose';
 
 const intlMiddleware = createMiddleware(routing);
+
+const SECRET = new TextEncoder().encode(
+  process.env.ADMIN_JWT_SECRET || 'fallback-dev-secret-change-in-production'
+);
+
+async function isValidJwt(token: string): Promise<boolean> {
+  try { await jwtVerify(token, SECRET); return true; }
+  catch { return false; }
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ── Admin route protection ──
   if (pathname.startsWith('/admin-hck-2025')) {
-    // Login + OTP pages are public (no auth needed)
-    const publicAdminPaths = ['/admin-hck-2025', '/admin-hck-2025/verify-otp'];
-    if (publicAdminPaths.includes(pathname)) {
-      return NextResponse.next();
-    }
+    // Login and OTP pages are always public
+    const publicPaths = ['/admin-hck-2025', '/admin-hck-2025/verify-otp', '/admin-hck-2025/setup-totp'];
+    if (publicPaths.includes(pathname)) return NextResponse.next();
 
-    // All /admin-hck-2025/dashboard/** requires valid session
-    const token = req.cookies.get('admin_session')?.value;
-    if (!token) {
+    // API auth routes are always public
+    if (pathname.startsWith('/api/admin/auth')) return NextResponse.next();
+
+    // Dashboard + all other admin pages require a valid session
+    const sessionToken = req.cookies.get('admin_session')?.value;
+    if (!sessionToken || !(await isValidJwt(sessionToken))) {
       return NextResponse.redirect(new URL('/admin-hck-2025', req.url));
-    }
-    const session = await verifyAdminToken(token);
-    if (!session) {
-      const res = NextResponse.redirect(new URL('/admin-hck-2025', req.url));
-      res.cookies.delete('admin_session');
-      return res;
     }
     return NextResponse.next();
   }

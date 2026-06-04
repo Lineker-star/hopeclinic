@@ -1,99 +1,88 @@
 'use client';
 import { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
 
 export default function AdminLoginPage() {
-  const router = useRouter();
+  const router   = useRouter();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
-  const [showPw,   setShowPw]   = useState(false);
-  const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  const [loading,  setLoading]  = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/admin/auth/login', {
-        method: 'POST',
+      const res  = await fetch('/api/admin/auth/login', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body:    JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Login failed'); return; }
+      if (!res.ok) {
+        setError(data.error || 'Invalid credentials');
+        return;
+      }
+      // Always go to verify-otp (TOTP via Google Authenticator)
       router.push('/admin-hck-2025/verify-otp');
     } catch {
-      setError('Network error. Please try again.');
+      setError('Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0F2340] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
+    <div className="min-h-screen bg-[#0F2340] flex items-center justify-center p-5">
+      <div className="bg-white rounded-2xl p-10 w-full max-w-md shadow-2xl">
         <div className="text-center mb-8">
-          <div className="relative w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden bg-white p-2 shadow-xl">
-            <Image src="/images/Hope_Clinic_logo.jpg" alt="Hope Clinic" fill className="object-contain" sizes="80px" />
-          </div>
-          <h1 className="text-3xl font-bold text-white" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-            Admin Portal
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/Hope_Clinic_logo.jpg"
+            alt="Hope Clinic"
+            className="w-20 h-20 mx-auto mb-4 rounded-xl object-contain"
+          />
+          <h1 className="text-2xl font-bold text-[#0F2340]"
+            style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            Hope Clinic
           </h1>
-          <p className="text-white/50 text-sm mt-1">Hope Clinic Koumé — Secure Access</p>
+          <p className="text-[#D4A017] font-semibold text-sm tracking-wider">ADMIN PORTAL</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-5 text-sm">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm border border-red-200">
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-[#0F2340] mb-1.5">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8896B3]" />
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                  className="w-full pl-10 pr-4 py-3 border border-[#D1DCF5] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]/25 focus:border-[#0F2340] transition-all"
-                  placeholder="admin@hopeclinickoume.org" />
-              </div>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]"
+              placeholder="admin@hopeclinic.koume.org"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)} required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]"
+              placeholder="Enter your password"
+            />
+          </div>
+          <button
+            type="submit" disabled={loading}
+            className="w-full py-3 bg-[#0F2340] text-white rounded-lg font-semibold text-base hover:bg-[#1B3A6B] transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
 
-            <div>
-              <label className="block text-sm font-semibold text-[#0F2340] mb-1.5">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8896B3]" />
-                <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
-                  className="w-full pl-10 pr-10 py-3 border border-[#D1DCF5] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]/25 focus:border-[#0F2340] transition-all"
-                  placeholder="Your password" />
-                <button type="button" onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8896B3] hover:text-[#0F2340]">
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button type="submit" disabled={loading}
-              className="w-full bg-[#0F2340] text-white py-3 rounded-xl font-bold hover:bg-[#1B3A6B] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-              {loading ? (
-                <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in...</>
-              ) : 'Sign In'}
-            </button>
-          </form>
-
-          <p className="text-center text-xs text-[#8896B3] mt-6">
-            A 6-digit OTP will be sent to your email to complete sign-in.
-          </p>
-        </div>
-
-        <p className="text-center text-white/20 text-xs mt-6">
-          Hope Clinic Koumé Admin — Restricted Access
+        <p className="text-center mt-6 text-xs text-gray-400">
+          You will be asked for your Google Authenticator code next.
         </p>
       </div>
     </div>

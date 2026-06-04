@@ -1,86 +1,99 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { signAdminToken } from '@/lib/admin/auth';
+import { jwtVerify, SignJWT } from 'jose';
+import speakeasy from 'speakeasy';
+
+const SECRET = new TextEncoder().encode(
+  process.env.ADMIN_JWT_SECRET || 'fallback-dev-secret-change-in-production'
+);
 
 export async function POST(req: NextRequest) {
   try {
-    const { otp }   = await req.json();
-    const adminId   = req.cookies.get('admin_pending')?.value;
+    const { otp } = await req.json();
+    const pendingToken = req.cookies.get('admin_pending')?.value;
 
-    if (!otp || !adminId) {
+    if (!otp || !pendingToken) {
       return NextResponse.json(
-        { error: 'Missing OTP or session. Please log in again.' },
+        { error: 'Missing code or session. Please log in again.' },
         { status: 400 }
       );
     }
 
-    // Find a valid, unused, unexpired OTP for this admin
-    const { data: session } = await supabaseAdmin
-      .from('otp_sessions')
-      .select('*')
-      .eq('admin_id', adminId)
-      .eq('otp_code', otp.trim())
-      .eq('is_used', false)
-      .gte('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (!session) {
+    // Decode the pending JWT to get adminId
+    let adminId: string;
+    try {
+      const { payload } = await jwtVerify(pendingToken, SECRET);
+      adminId = payload.adminId as string;
+    } catch {
       return NextResponse.json(
-        { error: 'Invalid or expired code.' },
+        { error: 'Session expired. Please log in again.' },
         { status: 401 }
       );
     }
 
-    // Mark OTP as used immediately (prevent replay)
-    await supabaseAdmin
-      .from('otp_sessions')
-      .update({ is_used: true })
-      .eq('id', session.id);
-
-    // Fetch full admin record
-    const { data: admin } = await supabaseAdmin
+    // Fetch admin + their TOTP secret from Supabase
+    const { data: admin, error } = await supabaseAdmin
       .from('admin_users')
-      .select('id, email, name, role, permissions')
+      .select('id, email, name, role, permissions, otp_secret, is_active')
       .eq('id', adminId)
       .eq('is_active', true)
       .single();
 
-    if (!admin) {
-      return NextResponse.json({ error: 'Admin account not found.' }, { status: 401 });
+    if (error || !admin || !admin.otp_secret) {
+      return NextResponse.json(
+        { error: 'Admin not found or authenticator not configured.' },
+        { status: 401 }
+      );
     }
 
-    // Update last_login timestamp
+    // Verify TOTP code via speakeasy (±1 period = 30s tolerance each side)
+    const valid = speakeasy.totp.verify({
+      secret:   admin.otp_secret,
+      encoding: 'base32',
+      token:    otp.replace(/\s/g, ''),
+      window:   1,
+    });
+
+    if (!valid) {
+      return NextResponse.json(
+        { error: 'Invalid code. Check your Google Authenticator app and try again.' },
+        { status: 401 }
+      );
+    }
+
+    // Update last_login
     await supabaseAdmin
       .from('admin_users')
       .update({ last_login: new Date().toISOString() })
       .eq('id', adminId);
 
-    // Sign an 8-hour JWT session token
-    const token = await signAdminToken({
-      adminId: admin.id,
-      email:   admin.email,
-      name:    admin.name,
-      role:    admin.role,
+    // Issue full 8-hour session JWT
+    const sessionToken = await new SignJWT({
+      adminId:     admin.id,
+      email:       admin.email,
+      name:        admin.name,
+      role:        admin.role,
       permissions: admin.permissions ?? {},
-    });
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(SECRET);
 
-    // Set session cookie and clear the pending cookie
     const res = NextResponse.json({ success: true });
     res.cookies.delete('admin_pending');
-    res.cookies.set('admin_session', token, {
+    res.cookies.set('admin_session', sessionToken, {
       httpOnly: true,
       secure:   process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge:   8 * 60 * 60,   // 8 hours
+      maxAge:   8 * 60 * 60,
       path:     '/',
     });
     return res;
 
   } catch (err) {
-    console.error('[OTP Verify]', err);
+    console.error('[TOTP Verify]', err);
     return NextResponse.json({ error: 'Server error.' }, { status: 500 });
   }
 }

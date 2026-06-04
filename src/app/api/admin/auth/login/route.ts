@@ -1,8 +1,12 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { generateOTP } from '@/lib/admin/auth';
 import bcrypt from 'bcryptjs';
+import { SignJWT } from 'jose';
+
+const SECRET = new TextEncoder().encode(
+  process.env.ADMIN_JWT_SECRET || 'fallback-dev-secret-change-in-production'
+);
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,76 +16,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    // Look up admin
+    // Query admin_users table
     const { data: admin, error } = await supabaseAdmin
       .from('admin_users')
-      .select('*')
-      .eq('email', email.toLowerCase())
+      .select('id, email, name, role, permissions, password_hash, otp_secret, is_active')
+      .eq('email', email.toLowerCase().trim())
       .eq('is_active', true)
       .single();
 
     if (error || !admin) {
+      // Same error for both "not found" and "wrong password" — prevents user enumeration
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
+    // Verify bcrypt password hash
     const valid = await bcrypt.compare(password, admin.password_hash);
     if (!valid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Generate OTP
-    const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+    // Sign a short-lived "pending" JWT (10 min) — full session only after TOTP
+    const pendingToken = await new SignJWT({ adminId: admin.id, email: admin.email })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('10m')
+      .sign(SECRET);
 
-    await supabaseAdmin.from('otp_sessions').insert({
-      admin_id: admin.id,
-      otp_code: otp,
-      expires_at: expiresAt.toISOString(),
-    });
-
-    // Send OTP email via Resend
-    if (process.env.RESEND_API_KEY) {
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: process.env.EMAIL_FROM || 'noreply@hopeclinickoume.org',
-          to: email,
-          subject: 'Hope Clinic Admin — Your OTP Code',
-          html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-              <h2 style="color:#0F2340">Hope Clinic Admin Portal</h2>
-              <p>Your one-time verification code:</p>
-              <div style="font-size:40px;font-weight:bold;letter-spacing:8px;color:#0F2340;text-align:center;
-                   padding:24px;background:#EBF0FB;border-radius:12px;margin:24px 0">
-                ${otp}
-              </div>
-              <p style="color:#8896B3;font-size:13px">
-                This code expires in 10 minutes.<br>
-                If you did not request this, please ignore this email.
-              </p>
-            </div>
-          `,
-        }),
-      });
-    } else {
-      // Dev fallback — remove before production
-      console.log(`[DEV] OTP for ${email}: ${otp}`);
-    }
-
-    // Store admin_id temporarily for OTP verification step
-    const res = NextResponse.json({ success: true, message: 'OTP sent to your email' });
-    res.cookies.set('admin_pending', admin.id, {
+    const res = NextResponse.json({ success: true, requireOTP: true });
+    res.cookies.set('admin_pending', pendingToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure:   process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 600, // 10 min
-      path: '/',
+      maxAge:   600,
+      path:     '/',
     });
     return res;
+
   } catch (err) {
     console.error('[Admin Login]', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
