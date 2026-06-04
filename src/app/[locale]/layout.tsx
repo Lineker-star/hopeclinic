@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Nunito } from 'next/font/google';
-import '../globals.css';
 import TopBar from '@/components/layout/TopBar';
 import Navbar from '@/components/layout/Navbar';
 import NewsBar from '@/components/layout/NewsBar';
@@ -47,32 +46,23 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params;
 
+  // Set lang + font variables on a wrapper div (html/body provided by root layout)
   return (
-    <html lang={locale} className={`${cormorant.variable} ${nunito.variable}`}>
-      <body
-        style={{ fontFamily: 'var(--font-body), Nunito, sans-serif' }}
-        className="bg-[#F8FAFF] text-[#1A1A2E] antialiased"
-      >
-        {/* TopBar: 36px fixed at very top */}
-        <TopBar />
-
-        {/* Navbar: fixed below TopBar (top: 36px), height ~64px */}
-        <Navbar />
-
-        {/* NewsBar: scrolling announcements — sits below navbar */}
-        {/* Total offset = 36 (topbar) + 64 (navbar) = 100px */}
-        <div className="fixed left-0 right-0 z-30" style={{ top: '100px' }}>
-          <NewsBar />
-        </div>
-
-        {/* Main content: padded for topbar + navbar + newsbar (~136px) */}
-        <main className="pt-[136px]">
-          {children}
-        </main>
-
-        <Footer />
-        <EmergencyFloat />
-      </body>
-    </html>
+    <div
+      lang={locale}
+      className={`${cormorant.variable} ${nunito.variable} bg-[#F8FAFF] text-[#1A1A2E] antialiased`}
+      style={{ fontFamily: 'var(--font-body), Nunito, sans-serif', minHeight: '100vh' }}
+    >
+      <TopBar />
+      <Navbar />
+      <div className="fixed left-0 right-0 z-30" style={{ top: '100px' }}>
+        <NewsBar />
+      </div>
+      <main className="pt-[136px]">
+        {children}
+      </main>
+      <Footer />
+      <EmergencyFloat />
+    </div>
   );
 }

@@ -1,6 +1,12 @@
-// Pass-through root layout — all HTML structure is in src/app/[locale]/layout.tsx
-// next-intl middleware routes all requests through [locale], so this is only
-// reached by Next.js internals (e.g. static file resolution).
+// Root layout — provides the required <html> and <body> wrapper for Next.js.
+// Public pages get their lang/font/styling from [locale]/layout.tsx (nested).
+// Admin pages get their styling from admin-hck-2025/layout.tsx (nested).
+import './globals.css';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return children as React.ReactElement;
+  return (
+    <html>
+      <body>{children}</body>
+    </html>
+  );
 }
