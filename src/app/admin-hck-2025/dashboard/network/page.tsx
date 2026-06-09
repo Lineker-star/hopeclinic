@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Edit3, Trash2, X, Save, RefreshCw, MapPin, CheckCircle } from 'lucide-react';
-import { hopeClinicLocations as SEED } from '@/data/hope-clinics';
 
 interface Location {
   id: string; name: string; city: string; country: string; region: string;
@@ -88,15 +87,14 @@ export default function NetworkManager() {
   const [toast, setToast]   = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
-  const toRows = (): Location[] => SEED.map(l => ({ id: l.id, name: l.name, city: l.city, country: l.country, region: l.region, latitude: l.latitude, longitude: l.longitude, year_founded: l.yearFounded, status: l.status, description: l.description, is_hq: l.name.includes('(HQ)'), order_index: 0 }));
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await fetch('/api/admin/network');
-      if (r.ok) { const d = await r.json() as Location[]; setLocs(d.length ? d : toRows()); }
-      else setLocs(toRows());
-    } catch { setLocs(toRows()); }
+      if (r.ok) { setLocs(await r.json() as Location[]); }
+      else setLocs([]);
+    } catch { setLocs([]); }
     setLoading(false);
   }, []);
 
@@ -115,12 +113,14 @@ export default function NetworkManager() {
         method: form.id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
+      if (!r.ok) {
+        const err = await r.json() as { error?: string };
+        showToast('Save failed: ' + (err.error ?? 'Server error')); setModal(null); return;
+      }
       const d = await r.json() as Location;
       setLocs(p => form.id ? p.map(x => x.id === d.id ? d : x) : [...p, d]);
       showToast('Saved — map updated!');
-    } catch {
-      setLocs(p => form.id ? p.map(x => x.id === form.id ? { ...x, ...form } as Location : x) : [...p, { ...form, id: Date.now().toString() } as Location]);
-    }
+    } catch { showToast('Network error — please try again'); }
     setModal(null);
   };
 
@@ -166,6 +166,9 @@ export default function NetworkManager() {
                 ))}</tr>
               </thead>
               <tbody className="divide-y divide-[#F0F4FF]">
+                {displayed.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-14 text-center text-[#8896B3] text-sm">No locations yet. Click &ldquo;Add Location&rdquo; to add one.</td></tr>
+                )}
                 {displayed.map(loc => (
                   <tr key={loc.id} className="hover:bg-[#FAFBFF] transition-colors">
                     <td className="px-4 py-3">{loc.is_hq && <span className="text-[#D4A017] text-base">★</span>}</td>

@@ -3,14 +3,10 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Edit3, Trash2, Eye, EyeOff, Star, Search, Tag, RefreshCw } from 'lucide-react';
-import { blogPosts as SEED } from '@/data/blog-posts';
-
 interface Post { id: string; slug: string; title: string; excerpt?: string; cover_image_url?: string; category: string; tags?: string[]; author_name?: string; author_image_url?: string; is_published: boolean; is_featured: boolean; published_at?: string; reading_time_minutes?: number; created_at?: string }
 
 const CATEGORIES = ['All', 'Events & Campaigns', 'Health Awareness', 'Clinic News', 'Medical Achievements', 'Partnerships'];
 const STATUS_OPTS = ['ALL', 'PUBLISHED', 'DRAFT'];
-
-const toRows = (): Post[] => SEED.map(p => ({ id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt, cover_image_url: p.coverImage, category: p.category, tags: p.tags, author_name: p.author, author_image_url: p.authorImage, is_published: true, is_featured: false, published_at: p.publishedAt, reading_time_minutes: p.readingTime }));
 
 export default function BlogManager() {
   const [posts,    setPosts]    = useState<Post[]>([]);
@@ -20,7 +16,7 @@ export default function BlogManager() {
   const [statFilter,setStatFilter] = useState('ALL');
 
   useEffect(() => {
-    fetch('/api/admin/blog').then(r => r.ok ? r.json() : null).then(d => setPosts(d?.length ? d : toRows())).catch(() => setPosts(toRows())).finally(() => setLoading(false));
+    fetch('/api/admin/blog').then(r => r.ok ? r.json() : []).then(d => setPosts(Array.isArray(d) ? d : [])).catch(() => setPosts([])).finally(() => setLoading(false));
   }, []);
 
   const togglePublished = async (id: string) => {
@@ -91,7 +87,7 @@ export default function BlogManager() {
       {loading ? (
         <div className="bg-white rounded-xl border border-[#D1DCF5] p-12 text-center text-[#8896B3]"><RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 opacity-40" /></div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[#D1DCF5] p-12 text-center text-[#8896B3] text-sm">No posts match your filters.</div>
+        <div className="bg-white rounded-xl border border-dashed border-[#D1DCF5] p-12 text-center text-[#8896B3] text-sm">{posts.length === 0 ? 'No posts yet. Click "New Post" to create one.' : 'No posts match your filters.'}</div>
       ) : (
         <div className="bg-white rounded-xl border border-[#D1DCF5] overflow-hidden">
           <div className="overflow-x-auto">
