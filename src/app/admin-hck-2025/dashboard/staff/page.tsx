@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Plus, Edit3, Trash2, X, Save, RefreshCw, CheckCircle, Upload } from 'lucide-react';
-import { staff as SEED, staffCounts } from '@/data/staff';
+import { staffCounts } from '@/data/staff';
 import type { StaffCategory } from '@/types';
 
 interface StaffMember {
@@ -119,19 +119,13 @@ export default function StaffManager() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const toRows = (): StaffMember[] => SEED.map(s => ({
-    id: s.id, name: s.name, title: s.title, category: s.category,
-    department: s.department, image_url: s.imageUrl, bio: s.bio,
-    is_active: s.isActive, order_index: s.order,
-  }));
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await fetch('/api/admin/staff');
-      if (r.ok) { const d = await r.json() as StaffMember[]; setAll(d.length ? d : toRows()); }
-      else setAll(toRows());
-    } catch { setAll(toRows()); }
+      if (r.ok) { setAll(await r.json() as StaffMember[]); }
+      else setAll([]);
+    } catch { setAll([]); }
     setLoading(false);
   }, []);
 
@@ -153,12 +147,14 @@ export default function StaffManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+      if (!r.ok) {
+        const err = await r.json() as { error?: string };
+        showToast('Save failed: ' + (err.error ?? 'Server error')); setModal(null); return;
+      }
       const d = await r.json() as StaffMember;
       setAll(p => form.id ? p.map(x => x.id === d.id ? d : x) : [...p, d]);
       showToast('Saved — staff page updated!');
-    } catch {
-      setAll(p => form.id ? p.map(x => x.id === form.id ? { ...x, ...form } as StaffMember : x) : [...p, { ...form, id: Date.now().toString() } as StaffMember]);
-    }
+    } catch { showToast('Network error — please try again'); }
     setModal(null);
   };
 
@@ -226,7 +222,7 @@ export default function StaffManager() {
           ))}
           {members.length === 0 && (
             <div className="col-span-full bg-white rounded-xl border border-dashed border-[#D1DCF5] p-10 text-center text-[#8896B3] text-sm">
-              No members in this category yet.
+              No members in this category yet. Click &ldquo;Add Member&rdquo; to add one.
             </div>
           )}
         </div>
