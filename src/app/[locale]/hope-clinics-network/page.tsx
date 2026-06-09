@@ -1,6 +1,4 @@
 'use client';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 import Link from 'next/link';
 import { activeClinics, plannedClinics } from '@/data/hope-clinics';
 import NetworkMapWrapper from '@/components/map/NetworkMapWrapper';

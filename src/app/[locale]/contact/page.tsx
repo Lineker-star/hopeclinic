@@ -1,6 +1,4 @@
 'use client';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 import Link from 'next/link';
 import { Phone, Mail, MapPin, Clock, MessageCircle, ExternalLink, AlertCircle } from 'lucide-react';
 import { FaFacebookF, FaInstagram } from 'react-icons/fa';
