@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, X, Save, RefreshCw, CheckCircle, Upload } from 'lucide-react';
-import { departments as SEED } from '@/data/departments';
 
 interface Dept {
   id: string; slug: string; name: string; description: string;
@@ -114,17 +113,11 @@ export default function DepartmentsManager() {
     setLoading(true);
     try {
       const r = await fetch('/api/admin/departments');
-      if (r.ok) { const d = await r.json() as Dept[]; setDepts(d.length ? d : toRows()); }
-      else setDepts(toRows());
-    } catch { setDepts(toRows()); }
+      if (r.ok) { setDepts(await r.json() as Dept[]); }
+      else setDepts([]);
+    } catch { setDepts([]); }
     setLoading(false);
   }, []);
-
-  const toRows = (): Dept[] => SEED.map(d => ({
-    id: d.id, slug: d.slug, name: d.name, description: d.description,
-    icon_name: d.iconName, image_url: d.imageUrl, color: d.color,
-    is_active: d.isActive, order_index: d.order,
-  }));
 
   useEffect(() => { load(); }, [load]);
 
@@ -149,12 +142,14 @@ export default function DepartmentsManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+      if (!r.ok) {
+        const err = await r.json() as { error?: string };
+        showToast('Save failed: ' + (err.error ?? 'Server error')); setModal(null); return;
+      }
       const d = await r.json() as Dept;
       setDepts(p => form.id ? p.map(x => x.id === d.id ? d : x) : [...p, d]);
       showToast('Saved — frontend updated!');
-    } catch {
-      setDepts(p => form.id ? p.map(x => x.id === form.id ? { ...x, ...form } as Dept : x) : [...p, { ...form, id: Date.now().toString() } as Dept]);
-    }
+    } catch { showToast('Network error — please try again'); }
     setModal(null);
   };
 
@@ -189,6 +184,9 @@ export default function DepartmentsManager() {
                 ))}</tr>
               </thead>
               <tbody className="divide-y divide-[#F0F4FF]">
+                {depts.length === 0 && (
+                  <tr><td colSpan={6} className="px-4 py-14 text-center text-[#8896B3] text-sm">No departments yet. Click &ldquo;Add Department&rdquo; to create one.</td></tr>
+                )}
                 {depts.sort((a, b) => a.order_index - b.order_index).map(d => (
                   <tr key={d.id} className="hover:bg-[#FAFBFF] transition-colors">
                     <td className="px-4 py-3 text-[#8896B3] text-xs">{d.order_index}</td>
