@@ -55,20 +55,21 @@ export default function GalleryPage() {
     [],
   );
 
+  const filtered = activeCategory === 'all'
+    ? galleryImages
+    : galleryImages.filter(img => img.category === activeCategory);
+
   useEffect(() => {
     if (lightboxIdx === null) return;
+    const len = filtered.length;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape')      setLightboxIdx(null);
-      if (e.key === 'ArrowLeft')   setLightboxIdx(i => i !== null ? (i - 1 + filtered.length) % filtered.length : null);
-      if (e.key === 'ArrowRight')  setLightboxIdx(i => i !== null ? (i + 1) % filtered.length : null);
+      if (e.key === 'ArrowLeft')   setLightboxIdx(i => i !== null ? (i - 1 + len) % len : null);
+      if (e.key === 'ArrowRight')  setLightboxIdx(i => i !== null ? (i + 1) % len : null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [lightboxIdx, filtered.length]);
-
-  const filtered = activeCategory === 'all'
-    ? galleryImages
-    : galleryImages.filter(img => img.category === activeCategory);
 
   return (
     <div className="bg-[#F8FAFF]">
