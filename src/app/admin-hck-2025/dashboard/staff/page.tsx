@@ -1,33 +1,36 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Edit3, Trash2, X, Save, RefreshCw, CheckCircle, Upload } from 'lucide-react';
-import { staffCounts } from '@/data/staff';
+import {
+  Plus, Edit3, Trash2, X, Save, RefreshCw,
+  CheckCircle, Upload, AlertCircle,
+} from 'lucide-react';
 import type { StaffCategory } from '@/types';
 
 interface StaffMember {
   id: string; name: string; title: string; category: StaffCategory;
   department?: string; image_url?: string; bio?: string;
+  email?: string; phone?: string;
   is_active: boolean; order_index: number;
 }
 
-const TABS: { key: StaffCategory; label: string; emoji: string; count: number }[] = [
-  { key: 'TOP_ADMINISTRATION', label: 'Administration',  emoji: '👑', count: staffCounts.TOP_ADMINISTRATION },
-  { key: 'RESIDENT_DOCTORS',   label: 'Resident Doctors',emoji: '⚕️', count: staffCounts.RESIDENT_DOCTORS },
-  { key: 'MAIN_NURSES',        label: 'Main Nurses',     emoji: '🩺', count: staffCounts.MAIN_NURSES },
-  { key: 'MIDWIVES',           label: 'Midwives',        emoji: '🤱', count: staffCounts.MIDWIVES },
-  { key: 'AIDING_NURSES',      label: 'Aiding Nurses',   emoji: '💉', count: staffCounts.AIDING_NURSES },
-  { key: 'SUPPORT_STAFF',      label: 'Support Staff',   emoji: '🏥', count: staffCounts.SUPPORT_STAFF },
+const TABS: { key: StaffCategory; label: string; emoji: string }[] = [
+  { key: 'TOP_ADMINISTRATION', label: 'Administration',   emoji: '👑' },
+  { key: 'RESIDENT_DOCTORS',   label: 'Resident Doctors', emoji: '⚕️' },
+  { key: 'MAIN_NURSES',        label: 'Main Nurses',      emoji: '🩺' },
+  { key: 'MIDWIVES',           label: 'Midwives',         emoji: '🤱' },
+  { key: 'AIDING_NURSES',      label: 'Aiding Nurses',    emoji: '💉' },
+  { key: 'SUPPORT_STAFF',      label: 'Support Staff',    emoji: '🏥' },
 ];
 
 const inputCls = 'w-full border border-[#D1DCF5] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F2340]/20 focus:border-[#0F2340]';
 
 function Modal({ member, activeTab, onClose, onSave }: {
   member: Partial<StaffMember>; activeTab: StaffCategory;
-  onClose: () => void; onSave: (m: Partial<StaffMember>) => Promise<void>
+  onClose: () => void; onSave: (m: Partial<StaffMember>) => Promise<void>;
 }) {
-  const [form, setForm]     = useState<Partial<StaffMember>>({ category: activeTab, is_active: true, ...member });
-  const [saving, setSaving] = useState(false);
+  const [form, setForm]         = useState<Partial<StaffMember>>({ category: activeTab, is_active: true, ...member });
+  const [saving, setSaving]     = useState(false);
   const [uploading, setUploading] = useState(false);
   const set = (k: keyof StaffMember, v: unknown) => setForm(f => ({ ...f, [k]: v }));
 
@@ -56,8 +59,9 @@ function Modal({ member, activeTab, onClose, onSave }: {
           {/* Photo */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden bg-[#EBF0FB] flex-shrink-0">
-              {form.image_url ? <img src={form.image_url} alt="" className="w-full h-full object-cover" /> :
-                <div className="w-full h-full flex items-center justify-center text-2xl text-[#D1DCF5]">👤</div>}
+              {form.image_url
+                ? <img src={form.image_url} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-2xl text-[#D1DCF5]">👤</div>}
             </div>
             <div className="flex-1">
               <label className="block text-xs font-semibold text-[#0F2340] mb-1">Photo</label>
@@ -72,25 +76,49 @@ function Modal({ member, activeTab, onClose, onSave }: {
             </div>
           </div>
 
-          <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Full Name *</label>
-            <input value={form.name ?? ''} onChange={e => set('name', e.target.value)} className={inputCls} /></div>
-          <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Title / Position *</label>
-            <input value={form.title ?? ''} onChange={e => set('title', e.target.value)} className={inputCls} placeholder="e.g. Senior Nurse, Head of Department" /></div>
+          <div>
+            <label className="block text-xs font-semibold text-[#0F2340] mb-1">Full Name *</label>
+            <input value={form.name ?? ''} onChange={e => set('name', e.target.value)} className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#0F2340] mb-1">Title / Position *</label>
+            <input value={form.title ?? ''} onChange={e => set('title', e.target.value)} className={inputCls} placeholder="e.g. Senior Nurse, Head of Department" />
+          </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
-            <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Category</label>
+            <div>
+              <label className="block text-xs font-semibold text-[#0F2340] mb-1">Category</label>
               <select value={form.category ?? activeTab} onChange={e => set('category', e.target.value as StaffCategory)} className={inputCls + ' bg-white'}>
                 {TABS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-              </select></div>
-            <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Department</label>
-              <input value={form.department ?? ''} onChange={e => set('department', e.target.value)} className={inputCls} placeholder="e.g. Pediatrics" /></div>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#0F2340] mb-1">Department</label>
+              <input value={form.department ?? ''} onChange={e => set('department', e.target.value)} className={inputCls} placeholder="e.g. Pediatrics" />
+            </div>
           </div>
-          <div><label className="block text-xs font-semibold text-[#0F2340] mb-1">Bio (optional)</label>
-            <textarea value={form.bio ?? ''} onChange={e => set('bio', e.target.value)} rows={3} className={inputCls + ' resize-none'} /></div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#0F2340] mb-1">Email</label>
+              <input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#0F2340] mb-1">Phone</label>
+              <input type="tel" value={form.phone ?? ''} onChange={e => set('phone', e.target.value)} className={inputCls} />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#0F2340] mb-1">Bio (optional)</label>
+            <textarea value={form.bio ?? ''} onChange={e => set('bio', e.target.value)} rows={3} className={inputCls + ' resize-none'} />
+          </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex-1"><label className="block text-xs font-semibold text-[#0F2340] mb-1">Order</label>
-              <input type="number" value={form.order_index ?? 0} onChange={e => set('order_index', +e.target.value)} className={inputCls} /></div>
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-[#0F2340] mb-1">Order</label>
+              <input type="number" value={form.order_index ?? 0} onChange={e => set('order_index', +e.target.value)} className={inputCls} />
+            </div>
             <label className="flex items-center gap-2 cursor-pointer mt-4">
               <input type="checkbox" checked={form.is_active ?? true} onChange={e => set('is_active', e.target.checked)} className="w-4 h-4 accent-[#0F2340]" />
               <span className="text-sm text-[#2D2D2D]">Active / Visible</span>
@@ -111,21 +139,24 @@ function Modal({ member, activeTab, onClose, onSave }: {
 }
 
 export default function StaffManager() {
-  const [all, setAll]           = useState<StaffMember[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [all, setAll]             = useState<StaffMember[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [activeTab, setActiveTab] = useState<StaffCategory>('TOP_ADMINISTRATION');
-  const [modal, setModal]       = useState<Partial<StaffMember> | null>(null);
-  const [toast, setToast]       = useState('');
+  const [modal, setModal]         = useState<Partial<StaffMember> | null>(null);
+  const [toast, setToast]         = useState<{ msg: string; ok: boolean } | null>(null);
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+  const showToast = (msg: string, ok = true) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await fetch('/api/admin/staff');
-      if (r.ok) { setAll(await r.json() as StaffMember[]); }
-      else setAll([]);
-    } catch { setAll([]); }
+      if (r.ok) setAll(await r.json() as StaffMember[]);
+      else showToast(`Load failed (HTTP ${r.status})`, false);
+    } catch { showToast('Network error loading staff', false); }
     setLoading(false);
   }, []);
 
@@ -134,10 +165,10 @@ export default function StaffManager() {
   const members = all.filter(s => s.category === activeTab).sort((a, b) => a.order_index - b.order_index);
 
   const remove = async (id: string) => {
-    if (!confirm('Delete?')) return;
-    setAll(p => p.filter(s => s.id !== id));
-    await fetch(`/api/admin/staff/${id}`, { method: 'DELETE' }).catch(() => {});
-    showToast('Deleted');
+    if (!confirm('Delete this staff member?')) return;
+    const r = await fetch(`/api/admin/staff/${id}`, { method: 'DELETE' }).catch(() => null);
+    if (r?.ok) { showToast('Deleted'); await load(); }
+    else { const e = await r?.json().catch(() => ({})) as { error?: string }; showToast('Delete failed: ' + (e?.error ?? 'Server error'), false); }
   };
 
   const save = async (form: Partial<StaffMember>) => {
@@ -148,21 +179,22 @@ export default function StaffManager() {
         body: JSON.stringify(form),
       });
       if (!r.ok) {
-        const err = await r.json() as { error?: string };
-        showToast('Save failed: ' + (err.error ?? 'Server error')); setModal(null); return;
+        const err = await r.json().catch(() => ({})) as { error?: string };
+        showToast('Save failed: ' + (err.error ?? `HTTP ${r.status}`), false);
+        return;
       }
-      const d = await r.json() as StaffMember;
-      setAll(p => form.id ? p.map(x => x.id === d.id ? d : x) : [...p, d]);
       showToast('Saved — staff page updated!');
-    } catch { showToast('Network error — please try again'); }
-    setModal(null);
+      setModal(null);
+      await load();
+    } catch { showToast('Network error — please try again', false); }
   };
 
   return (
     <div>
       {toast && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-semibold">
-          <CheckCircle className="w-4 h-4" /> {toast}
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${toast.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+          {toast.ok ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {toast.msg}
         </div>
       )}
 
@@ -186,7 +218,7 @@ export default function StaffManager() {
               <span>{tab.emoji}</span>
               <span className="hidden sm:inline">{tab.label}</span>
               <span className="ml-1 text-xs bg-[#EBF0FB] text-[#0F2340] px-1.5 py-0.5 rounded-full font-bold">
-                {all.filter(s => s.category === tab.key).length}/{tab.count}
+                {all.filter(s => s.category === tab.key).length}
               </span>
             </button>
           ))}
@@ -210,7 +242,8 @@ export default function StaffManager() {
                 <p className="text-[#1B3A6B] text-[11px] mt-0.5 truncate">{member.title}</p>
                 {member.department && <p className="text-[#8896B3] text-[11px]">{member.department}</p>}
                 <div className="flex items-center gap-1 mt-2">
-                  <button onClick={() => setModal(member)} className="flex-1 flex items-center justify-center gap-1 border border-[#D1DCF5] text-[#4A5568] py-1 rounded-lg text-[11px] hover:bg-[#EBF0FB]">
+                  <button onClick={() => setModal(member)}
+                    className="flex-1 flex items-center justify-center gap-1 border border-[#D1DCF5] text-[#4A5568] py-1 rounded-lg text-[11px] hover:bg-[#EBF0FB]">
                     <Edit3 className="w-3 h-3" /> Edit
                   </button>
                   <button onClick={() => remove(member.id)} className="p-1 rounded-lg text-[#C8102E] hover:bg-red-50">
@@ -227,6 +260,7 @@ export default function StaffManager() {
           )}
         </div>
       )}
+
       {modal && <Modal member={modal} activeTab={activeTab} onClose={() => setModal(null)} onSave={save} />}
     </div>
   );
