@@ -6,7 +6,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { X, ZoomIn, Play } from 'lucide-react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
-import { createClient } from '@/lib/supabase/client';
 
 const categories = [
   { id: 'all',          label: 'All Photos',        labelFr: 'Toutes les Photos' },
@@ -47,19 +46,22 @@ const videos = [
 const heights = ['h-52', 'h-64', 'h-48', 'h-72', 'h-56', 'h-60', 'h-44', 'h-68', 'h-52', 'h-56', 'h-64', 'h-48', 'h-60', 'h-52', 'h-56', 'h-64'];
 
 async function fetchGallery(): Promise<GalleryImage[]> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from('gallery_items')
-    .select('id, url, image_url, category, caption, alt')
-    .eq('is_active', true)
-    .order('order_index');
-  if (data && data.length > 0) {
-    return data.map((r: Record<string, unknown>) => ({
-      id:      String(r.id),
-      url:     String(r.url ?? r.image_url ?? ''),
-      category: String(r.category ?? 'facility'),
-      caption: String(r.caption ?? r.alt ?? ''),
-    }));
+  try {
+    const res = await fetch('/api/admin/gallery');
+    if (res.ok) {
+      const data = await res.json() as Record<string, unknown>[];
+      const active = data.filter(r => r.is_active !== false);
+      if (active.length > 0) {
+        return active.map(r => ({
+          id:       String(r.id),
+          url:      String(r.url ?? r.image_url ?? ''),
+          category: String(r.category ?? 'facility'),
+          caption:  String(r.caption ?? r.alt ?? ''),
+        }));
+      }
+    }
+  } catch (e) {
+    console.error('[fetchGallery] API error:', e);
   }
   return SEED_IMAGES;
 }

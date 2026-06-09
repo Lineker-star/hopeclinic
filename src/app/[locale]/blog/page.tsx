@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { blogPosts as SEED } from '@/data/blog-posts';
 import { Clock, Tag, ArrowRight, Search } from 'lucide-react';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 
 const categories = ['All', 'Events & Campaigns', 'Health Awareness', 'Clinic News', 'Medical Achievements', 'Partnerships'];
 
@@ -14,17 +14,25 @@ interface Post { id: string; slug: string; title: string; excerpt: string; cover
 
 const seedPosts: Post[] = SEED.map(p => ({ id: p.id, slug: p.slug, title: p.title, excerpt: p.excerpt, cover_image_url: p.coverImage, category: p.category, author_name: p.author, author_image_url: p.authorImage, published_at: p.publishedAt, reading_time_minutes: p.readingTime }));
 
+async function fetchPosts(): Promise<Post[]> {
+  try {
+    const res = await fetch('/api/admin/blog');
+    if (res.ok) {
+      const data = await res.json() as (Post & { is_published?: boolean })[];
+      const published = data.filter(p => p.is_published !== false);
+      if (published.length > 0) return published;
+    }
+  } catch (e) {
+    console.error('[fetchPosts] API error:', e);
+  }
+  return seedPosts;
+}
+
 export default function BlogPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [query, setQuery] = useState('');
 
-  const { data: posts } = useSupabaseData<Post>('blog_posts', {
-    filter: { is_published: true },
-    orderBy: 'published_at',
-    orderAsc: false,
-    fallback: seedPosts,
-    realtimeTable: 'blog_posts',
-  });
+  const { data: posts, loading } = useSupabaseRealtime<Post[]>('blog_posts', fetchPosts, seedPosts);
 
   const filtered = posts.filter((p) => {
     const matchesCat = activeCategory === 'All' || p.category === activeCategory;
@@ -54,7 +62,28 @@ export default function BlogPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="animate-pulse space-y-6 mb-10">
+            <div className="h-72 sm:h-96 bg-[#EBF0FB] rounded-2xl" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl overflow-hidden border border-[#D1DCF5]">
+                  <div className="h-48 bg-[#EBF0FB]" />
+                  <div className="p-5 space-y-2">
+                    <div className="h-3 bg-[#EBF0FB] rounded w-1/3" />
+                    <div className="h-4 bg-[#EBF0FB] rounded w-3/4" />
+                    <div className="h-3 bg-[#EBF0FB] rounded" />
+                    <div className="h-3 bg-[#EBF0FB] rounded w-5/6" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Featured */}
+        {!loading && posts.length > 0 && (
         <Link href={`/blog/${posts[0]?.slug ?? ""}`} className="group block mb-10">
           <div className="relative rounded-2xl overflow-hidden shadow-xl h-72 sm:h-96">
             <Image src={(posts[0]?.cover_image_url ?? posts[0]?.coverImage ?? "")} alt={(posts[0]?.title ?? "")}
@@ -79,6 +108,7 @@ export default function BlogPage() {
             </div>
           </div>
         </Link>
+        )}
 
         {/* Search + Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -105,7 +135,7 @@ export default function BlogPage() {
         </div>
 
         {/* Posts Grid */}
-        {filtered.length === 0 ? (
+        {!loading && filtered.length === 0 ? (
           <div className="text-center py-16 text-[#8896B3]">
             <p className="text-lg">No articles found matching your search.</p>
           </div>

@@ -1,7 +1,6 @@
 'use client';
 import { MapPin, Calendar, CheckCircle, Clock, Navigation } from 'lucide-react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
-import { createClient } from '@/lib/supabase/client';
 import { hopeClinicLocations as SEED } from '@/data/hope-clinics';
 import type { HopeClinicLocation } from '@/types';
 
@@ -21,26 +20,31 @@ const regions = [
   { key: 'World'         as const, label: 'The World',               emoji: '🌏', desc: 'Reaching beyond Africa to the nations' },
 ] as const;
 
+function mapClinic(r: Record<string, unknown>): HopeClinicLocation {
+  return {
+    id:          String(r['id'] ?? ''),
+    name:        String(r['name'] ?? ''),
+    city:        String(r['city'] ?? ''),
+    country:     String(r['country'] ?? ''),
+    region:      (r['region'] ?? 'Africa') as HopeClinicLocation['region'],
+    latitude:    Number(r['latitude'] ?? 0),
+    longitude:   Number(r['longitude'] ?? 0),
+    status:      (r['status'] ?? 'ACTIVE') as HopeClinicLocation['status'],
+    yearFounded: (r['year_founded'] ?? r['yearFounded']) as number | undefined,
+    description: r['description'] as string | undefined,
+    imageUrl:    (r['image_url'] ?? r['imageUrl']) as string | undefined,
+  };
+}
+
 async function fetchClinics(): Promise<HopeClinicLocation[]> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from('hope_clinic_locations')
-    .select('*')
-    .order('order_index');
-  if (data && data.length > 0) {
-    return (data as Record<string, unknown>[]).map(r => ({
-      id:          String(r['id'] ?? ''),
-      name:        String(r['name'] ?? ''),
-      city:        String(r['city'] ?? ''),
-      country:     String(r['country'] ?? ''),
-      region:      (r['region'] ?? 'Africa') as HopeClinicLocation['region'],
-      latitude:    Number(r['latitude'] ?? 0),
-      longitude:   Number(r['longitude'] ?? 0),
-      status:      (r['status'] ?? 'ACTIVE') as HopeClinicLocation['status'],
-      yearFounded: (r['year_founded'] ?? r['yearFounded']) as number | undefined,
-      description: r['description'] as string | undefined,
-      imageUrl:    (r['image_url'] ?? r['imageUrl']) as string | undefined,
-    }));
+  try {
+    const res = await fetch('/api/admin/network');
+    if (res.ok) {
+      const data = await res.json() as Record<string, unknown>[];
+      if (data.length > 0) return data.map(mapClinic);
+    }
+  } catch (e) {
+    console.error('[fetchClinics] API error:', e);
   }
   return SEED;
 }

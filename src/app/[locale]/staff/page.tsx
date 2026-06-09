@@ -5,8 +5,22 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { staffCounts } from '@/data/staff';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import type { StaffCategory } from '@/types';
+
+async function fetchStaff(): Promise<DbStaff[]> {
+  try {
+    const res = await fetch('/api/admin/staff');
+    if (res.ok) {
+      const data = await res.json() as DbStaff[];
+      const active = data.filter(s => s.is_active !== false);
+      if (active.length > 0) return active;
+    }
+  } catch (e) {
+    console.error('[fetchStaff] API error:', e);
+  }
+  return [];
+}
 
 interface DbStaff {
   id: string; name: string; title: string; category: StaffCategory;
@@ -35,12 +49,7 @@ const badgeColors: Record<StaffCategory, string> = {
 export default function StaffPage() {
   const [activeTab, setActiveTab] = useState<StaffCategory>('TOP_ADMINISTRATION');
 
-  const { data: allStaff } = useSupabaseData<DbStaff>('staff', {
-    filter: { is_active: true },
-    orderBy: 'order_index',
-    fallback: [],
-    realtimeTable: 'staff',
-  });
+  const { data: allStaff, loading } = useSupabaseRealtime<DbStaff[]>('staff', fetchStaff, []);
 
   const members = allStaff.filter(s => s.category === activeTab).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   const activeInfo = tabs.find(t => t.key === activeTab)!;
@@ -120,6 +129,28 @@ export default function StaffPage() {
           </p>
         </div>
 
+        {loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#D1DCF5] animate-pulse">
+                <div className="h-48 bg-[#EBF0FB]" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 bg-[#EBF0FB] rounded w-1/2" />
+                  <div className="h-4 bg-[#EBF0FB] rounded w-3/4" />
+                  <div className="h-3 bg-[#EBF0FB] rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && members.length === 0 && (
+          <div className="text-center py-20 text-[#8896B3]">
+            <p className="text-lg font-medium">No staff members in this category yet.</p>
+          </div>
+        )}
+
+        {!loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
           {members.map((member) => (
             <div key={member.id}
@@ -160,6 +191,7 @@ export default function StaffPage() {
             </div>
           )}
         </div>
+        )}
       </section>
 
       {/* Join CTA */}

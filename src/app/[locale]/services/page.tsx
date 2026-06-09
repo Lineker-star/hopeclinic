@@ -4,7 +4,6 @@ export const revalidate = 0;
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Clock } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { departments as SEED_DEPTS } from '@/data/departments';
 
@@ -21,21 +20,24 @@ const ICON_MAP: Record<string, string> = {
   maternity: '🤱', dental: '🦷', spiritual: '✝️', holistic: '🌿', mobile: '🚐',
 };
 
+const SEED_MAPPED: DbDept[] = SEED_DEPTS.map(d => ({
+  id: d.id, slug: d.slug, name: d.name, description: d.description,
+  icon_name: d.iconName, image_url: d.imageUrl, features: [],
+  is_active: d.isActive, order_index: d.order,
+}));
+
 async function fetchDepartments(): Promise<DbDept[]> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('departments')
-    .select('id,slug,name,description,icon_name,image_url,features,is_active,order_index')
-    .eq('is_active', true)
-    .order('order_index');
-  if (error || !data || data.length === 0) {
-    return SEED_DEPTS.map(d => ({
-      id: d.id, slug: d.slug, name: d.name, description: d.description,
-      icon_name: d.iconName, image_url: d.imageUrl, features: [],
-      is_active: d.isActive, order_index: d.order,
-    }));
+  try {
+    const res = await fetch('/api/admin/departments');
+    if (res.ok) {
+      const data = await res.json() as DbDept[];
+      const active = data.filter(d => d.is_active !== false);
+      if (active.length > 0) return active;
+    }
+  } catch (e) {
+    console.error('[fetchDepartments] API error:', e);
   }
-  return data as DbDept[];
+  return SEED_MAPPED;
 }
 
 const schedule = [

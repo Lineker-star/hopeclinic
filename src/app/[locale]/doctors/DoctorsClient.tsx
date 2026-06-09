@@ -3,30 +3,22 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Star, Calendar, Globe, Award, ArrowRight } from 'lucide-react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
-import { createClient } from '@/lib/supabase/client';
 import { doctors as SEED_DOCTORS } from '@/data/doctors';
-import type { Doctor } from '@/types';
 
 type DoctorRow = Record<string, unknown>;
 
 async function fetchDoctors(): Promise<DoctorRow[]> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from('doctors')
-    .select('*')
-    .eq('is_active', true)
-    .order('order_index');
-  if (data && data.length > 0) return data as DoctorRow[];
-  return SEED_DOCTORS.filter(d => d.isActive).map(d => ({
-    id:                d.id,
-    name:              d.name,
-    title_prefix:      d.titlePrefix,
-    specialization:    d.specialization,
-    image_url:         d.imageUrl,
-    experience_years:  d.experience,
-    languages:         d.languages,
-    available_days:    d.availableDays,
-  }));
+  try {
+    const res = await fetch('/api/admin/doctors');
+    if (res.ok) {
+      const data = await res.json() as DoctorRow[];
+      const active = data.filter(d => d.is_active !== false);
+      if (active.length > 0) return active;
+    }
+  } catch (e) {
+    console.error('[fetchDoctors] API error:', e);
+  }
+  return SEED_ROWS;
 }
 
 const SEED_ROWS: DoctorRow[] = SEED_DOCTORS.filter(d => d.isActive).map(d => ({
