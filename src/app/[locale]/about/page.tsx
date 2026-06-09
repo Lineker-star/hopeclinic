@@ -1,12 +1,9 @@
-import type { Metadata } from 'next';
+'use client';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import Image from 'next/image';
 import Link from 'next/link';
 import { ExternalLink, Quote, CheckCircle } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'About Us',
-  description: '10 years of healing excellence. Hope Clinic Koumé — 68,791 patients treated, 1,135 surgeries, 87 staff, CMFI Mercy Works, Bertoua, Cameroon.',
-};
 
 /* ─── Data ─── */
 const stats10yr = [
