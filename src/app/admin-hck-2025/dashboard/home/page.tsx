@@ -68,14 +68,20 @@ export default function HomeManager() {
   }, []);
 
   const save = async (section: string, payload: unknown) => {
+    console.log('Saving with key: home_' + section, 'content:', payload);
     setSaving(section);
     try {
       const r = await fetch('/api/admin/home', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ section, content: payload }),
       });
-      if (r.ok) showToast(`${section} saved — frontend updated!`);
-      else showToast('Save failed');
+      if (r.ok) {
+        const result = await r.json();
+        console.log('Save result:', result);
+        showToast(`${section} saved — frontend updated!`);
+      } else {
+        showToast('Save failed');
+      }
     } catch { showToast('Network error'); }
     setSaving(null);
   };

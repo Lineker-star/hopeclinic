@@ -5,67 +5,117 @@ import { ChevronDown, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 
+// Must match exactly: admin API saves 'home_' + section, section='hero' → 'home_hero'
+const HERO_KEY        = 'home_hero';
+const HERO_IMAGES_KEY = 'home_hero_images';
+
 const DEFAULT_IMAGES = [
   'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1920&q=80',
   'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1920&q=80',
   'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=1920&q=80',
   'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=1920&q=80',
 ];
-const DEFAULT_HERO = {
-  badge:    'CMFI Mercy Works — Hope Clinic Koumé',
-  title:    'Quality Medical Care',
+
+interface HeroState {
+  badge:       string;
+  title:       string;
+  titleItalic: string;
+  subtitle:    string;
+  cta1:        string;
+  cta2:        string;
+}
+
+const DEFAULT_HERO: HeroState = {
+  badge:       'CMFI Mercy Works — Hope Clinic Koumé',
+  title:       'Quality Medical Care',
   titleItalic: 'at Our Modern Clinic',
-  subtitle: 'With our modern facilities and skilled medical staff, we provide quality care in a comfortable and healing environment.',
+  subtitle:    'With our modern facilities and skilled medical staff, we provide quality care in a comfortable and healing environment.',
   cta1: 'Book Appointment',
   cta2: 'View Our Services',
 };
 
+function applyImages(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const active = (raw as Array<{ url: string; is_active: boolean; order_index: number }>)
+    .filter(x => x.is_active)
+    .sort((a, b) => a.order_index - b.order_index)
+    .map(x => x.url)
+    .filter(Boolean);
+  return active.length > 0 ? active : null;
+}
+
 export default function HeroSection() {
-  const [current,    setCurrent]    = useState(0);
-  const [images,     setImages]     = useState<string[]>(DEFAULT_IMAGES);
-  const [hero,       setHero]       = useState(DEFAULT_HERO);
+  const [current, setCurrent] = useState(0);
+  const [images,  setImages]  = useState<string[]>(DEFAULT_IMAGES);
+  const [hero,    setHero]    = useState<HeroState>(DEFAULT_HERO);
 
   useEffect(() => {
+    const supabase = createClient();
+
+    // ── Initial load ─────────────────────────────────────────────────────────
     const load = async () => {
       try {
-        const { supabase } = await import('@/lib/supabase');
         const [{ data: hd }, { data: id }] = await Promise.all([
-          supabase.from('site_settings').select('value').eq('key', 'home_hero').single(),
-          supabase.from('site_settings').select('value').eq('key', 'home_hero_images').single(),
+          supabase.from('site_settings').select('value').eq('key', HERO_KEY).single(),
+          supabase.from('site_settings').select('value').eq('key', HERO_IMAGES_KEY).single(),
         ]);
         if (hd?.value) {
-          const v = hd.value as Record<string, string>;
+          const v = hd.value as Partial<HeroState>;
           setHero(prev => ({
             ...prev,
-            badge:    v.badge    ?? prev.badge,
-            title:    v.title    ?? prev.title,
-            subtitle: v.subtitle ?? prev.subtitle,
-            cta1:     v.cta1     ?? prev.cta1,
-            cta2:     v.cta2     ?? prev.cta2,
+            badge:       v.badge       ?? prev.badge,
+            title:       v.title       ?? prev.title,
+            titleItalic: v.titleItalic ?? prev.titleItalic,
+            subtitle:    v.subtitle    ?? prev.subtitle,
+            cta1:        v.cta1        ?? prev.cta1,
+            cta2:        v.cta2        ?? prev.cta2,
           }));
         }
-        if (Array.isArray(id?.value)) {
-          const active = (id.value as Array<{ url: string; is_active: boolean; order_index: number }>)
-            .filter(x => x.is_active)
-            .sort((a, b) => a.order_index - b.order_index)
-            .map(x => x.url)
-            .filter(Boolean);
-          if (active.length > 0) setImages(active);
-        }
-      } catch { /* keep defaults */ }
+        const imgs = applyImages(id?.value);
+        if (imgs) setImages(imgs);
+      } catch (e) {
+        console.error('Hero initial load error:', e);
+      }
     };
 
     load();
 
-    // Real-time subscription — fires load() whenever admin saves site_settings
-    const supabase = createClient();
+    // ── Real-time subscription ────────────────────────────────────────────────
+    // Apply changes DIRECTLY from the payload — no extra DB round-trip.
     const channel = supabase
-      .channel('hero_site_settings_realtime')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'site_settings' }, () => { load(); })
+      .channel('hero_realtime_' + Date.now())
+      .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        'postgres_changes' as any,
+        { event: '*', schema: 'public', table: 'site_settings' },
+        (payload: { new: { key?: string; value?: unknown } }) => {
+          console.log('🔥 DB change received:', payload);
+          const { key, value } = payload.new ?? {};
+
+          if (key === HERO_KEY && value) {
+            console.log('✅ Hero text updated live:', value);
+            const v = value as Partial<HeroState>;
+            setHero(prev => ({
+              ...prev,
+              badge:       v.badge       ?? prev.badge,
+              title:       v.title       ?? prev.title,
+              titleItalic: v.titleItalic ?? prev.titleItalic,
+              subtitle:    v.subtitle    ?? prev.subtitle,
+              cta1:        v.cta1        ?? prev.cta1,
+              cta2:        v.cta2        ?? prev.cta2,
+            }));
+          }
+
+          if (key === HERO_IMAGES_KEY) {
+            console.log('✅ Hero images updated live:', value);
+            const imgs = applyImages(value);
+            if (imgs) setImages(imgs);
+          }
+        }
+      )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED')    console.log('✅ Realtime active for table: site_settings (hero)');
-        if (status === 'CHANNEL_ERROR') console.error('❌ Realtime error for table: site_settings (hero)');
+        console.log('Hero realtime status:', status);
+        if (status === 'CHANNEL_ERROR') console.error('❌ Hero realtime channel error');
       });
 
     return () => { supabase.removeChannel(channel); };
@@ -108,7 +158,7 @@ export default function HeroSection() {
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 leading-tight"
           style={{ fontFamily: 'Cormorant Garamond, serif' }}>
           {hero.title}<br />
-          <span className="text-[#D4A017] italic">{hero.titleItalic ?? 'at Our Modern Clinic'}</span>
+          <span className="text-[#D4A017] italic">{hero.titleItalic}</span>
         </motion.h1>
 
         <motion.p
