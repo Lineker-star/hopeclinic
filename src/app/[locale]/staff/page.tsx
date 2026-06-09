@@ -38,6 +38,7 @@ export default function StaffPage() {
   const { data: allStaff } = useSupabaseData<DbStaff>('staff', {
     filter: { is_active: true },
     orderBy: 'order_index',
+    fallback: [],
     realtimeTable: 'staff',
   });
 
