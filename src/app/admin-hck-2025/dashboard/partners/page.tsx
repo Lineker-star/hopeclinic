@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Trash2, Eye, EyeOff, RefreshCw, CheckCircle, X, Save, Upload } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, RefreshCw, CheckCircle, X, Save, Upload, AlertCircle } from 'lucide-react';
 
 interface Partner {
   id: string; name: string; description?: string;
@@ -96,9 +96,9 @@ export default function PartnersManager() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [modal,    setModal]    = useState<Partial<Partner> | null>(null);
-  const [toast,    setToast]    = useState('');
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+  const showToast = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,17 +113,20 @@ export default function PartnersManager() {
   useEffect(() => { load(); }, [load]);
 
   const toggle = async (id: string) => {
-    const updated = partners.map(p => p.id === id ? { ...p, is_active: !p.is_active } : p);
-    setPartners(updated);
-    const item = updated.find(p => p.id === id)!;
-    await fetch(`/api/admin/partners/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: item.is_active }) }).catch(() => {});
+    const item = partners.find(p => p.id === id);
+    if (!item) return;
+    const r = await fetch(`/api/admin/partners/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: !item.is_active }),
+    }).catch(() => null);
+    if (r?.ok) await load();
   };
 
   const remove = async (id: string) => {
     if (!confirm('Delete this partner?')) return;
-    setPartners(p => p.filter(x => x.id !== id));
-    await fetch(`/api/admin/partners/${id}`, { method: 'DELETE' }).catch(() => {});
-    showToast('Deleted');
+    const r = await fetch(`/api/admin/partners/${id}`, { method: 'DELETE' }).catch(() => null);
+    if (r?.ok) { showToast('Deleted'); await load(); }
+    else showToast('Delete failed', false);
   };
 
   const save = async (form: Partial<Partner>) => {
@@ -133,19 +136,22 @@ export default function PartnersManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      if (!r.ok) { showToast('Save failed'); setModal(null); return; }
-      const d = await r.json() as Partner;
-      setPartners(p => form.id ? p.map(x => x.id === d.id ? d : x) : [...p, d]);
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({})) as { error?: string };
+        showToast('Save failed: ' + (err.error ?? `HTTP ${r.status}`), false);
+        return;
+      }
       showToast('Partner saved!');
-    } catch { showToast('Network error'); }
-    setModal(null);
+      setModal(null);
+      await load();
+    } catch { showToast('Network error', false); }
   };
 
   return (
     <div>
       {toast && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-semibold">
-          <CheckCircle className="w-4 h-4" /> {toast}
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${toast.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+          {toast.ok ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />} {toast.msg}
         </div>
       )}
 

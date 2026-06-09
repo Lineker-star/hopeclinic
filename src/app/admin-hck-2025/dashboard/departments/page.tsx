@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, X, Save, RefreshCw, CheckCircle, Upload } from 'lucide-react';
+import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, X, Save, RefreshCw, CheckCircle, Upload, AlertCircle } from 'lucide-react';
 
 interface Dept {
   id: string; slug: string; name: string; description: string;
@@ -105,9 +105,9 @@ export default function DepartmentsManager() {
   const [depts, setDepts]   = useState<Dept[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal]   = useState<Partial<Dept> | null>(null);
-  const [toast, setToast]   = useState('');
+  const [toast, setToast]   = useState<{ msg: string; ok: boolean } | null>(null);
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+  const showToast = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -122,17 +122,20 @@ export default function DepartmentsManager() {
   useEffect(() => { load(); }, [load]);
 
   const toggle = async (id: string) => {
-    const updated = depts.map(d => d.id === id ? { ...d, is_active: !d.is_active } : d);
-    setDepts(updated);
-    const item = updated.find(d => d.id === id)!;
-    await fetch(`/api/admin/departments/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: item.is_active }) }).catch(() => {});
+    const item = depts.find(d => d.id === id);
+    if (!item) return;
+    const r = await fetch(`/api/admin/departments/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: !item.is_active }),
+    }).catch(() => null);
+    if (r?.ok) await load();
   };
 
   const remove = async (id: string) => {
     if (!confirm('Delete this department?')) return;
-    setDepts(p => p.filter(d => d.id !== id));
-    await fetch(`/api/admin/departments/${id}`, { method: 'DELETE' }).catch(() => {});
-    showToast('Deleted');
+    const r = await fetch(`/api/admin/departments/${id}`, { method: 'DELETE' }).catch(() => null);
+    if (r?.ok) { showToast('Deleted'); await load(); }
+    else showToast('Delete failed', false);
   };
 
   const save = async (form: Partial<Dept>) => {
@@ -143,21 +146,21 @@ export default function DepartmentsManager() {
         body: JSON.stringify(form),
       });
       if (!r.ok) {
-        const err = await r.json() as { error?: string };
-        showToast('Save failed: ' + (err.error ?? 'Server error')); setModal(null); return;
+        const err = await r.json().catch(() => ({})) as { error?: string };
+        showToast('Save failed: ' + (err.error ?? `HTTP ${r.status}`), false);
+        return;
       }
-      const d = await r.json() as Dept;
-      setDepts(p => form.id ? p.map(x => x.id === d.id ? d : x) : [...p, d]);
       showToast('Saved — frontend updated!');
-    } catch { showToast('Network error — please try again'); }
-    setModal(null);
+      setModal(null);
+      await load();
+    } catch { showToast('Network error — please try again', false); }
   };
 
   return (
     <div>
       {toast && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-semibold">
-          <CheckCircle className="w-4 h-4" /> {toast}
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${toast.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+          {toast.ok ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />} {toast.msg}
         </div>
       )}
 
