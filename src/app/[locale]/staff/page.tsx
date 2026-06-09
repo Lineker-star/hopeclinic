@@ -4,10 +4,15 @@ export const revalidate = 0;
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { staffByCategory, staffCounts, staff as SEED_STAFF } from '@/data/staff';
+import { staffCounts } from '@/data/staff';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import type { StaffMember } from '@/types';
 import type { StaffCategory } from '@/types';
+
+interface DbStaff {
+  id: string; name: string; title: string; category: StaffCategory;
+  department?: string; image_url?: string; bio?: string;
+  is_active: boolean; order_index: number;
+}
 
 const tabs: { key: StaffCategory; label: string; labelFr: string; emoji: string; total: number }[] = [
   { key: 'TOP_ADMINISTRATION', label: 'Administration',    labelFr: 'Direction',              emoji: '👑', total: staffCounts.TOP_ADMINISTRATION },
@@ -30,14 +35,13 @@ const badgeColors: Record<StaffCategory, string> = {
 export default function StaffPage() {
   const [activeTab, setActiveTab] = useState<StaffCategory>('TOP_ADMINISTRATION');
 
-  const { data: allStaff } = useSupabaseData<StaffMember>('staff', {
+  const { data: allStaff } = useSupabaseData<DbStaff>('staff', {
     filter: { is_active: true },
     orderBy: 'order_index',
-    fallback: SEED_STAFF,
     realtimeTable: 'staff',
   });
 
-  const members = allStaff.filter(s => s.category === activeTab).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const members = allStaff.filter(s => s.category === activeTab).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   const activeInfo = tabs.find(t => t.key === activeTab)!;
 
   return (
@@ -120,7 +124,7 @@ export default function StaffPage() {
             <div key={member.id}
               className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group border border-[#D1DCF5] hover:border-[#1B3A6B]">
               <div className="relative h-48 overflow-hidden bg-[#EBF0FB]">
-                <Image src={member.imageUrl} alt={member.name}
+                <Image src={member.image_url || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop'} alt={member.name}
                   fill className="object-cover group-hover:scale-105 transition-transform duration-500"
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
                 />

@@ -1,122 +1,42 @@
+'use client';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Clock } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
+import { departments as SEED_DEPTS } from '@/data/departments';
 
-export const metadata: Metadata = {
-  title: 'Our Services',
-  description: '15 medical departments at Hope Clinic Koumé — 1,135 surgeries, 39,757 lab tests, 1,576 births. Emergency, Surgery, Maternity, Pediatrics, Cardiology and more.',
+interface DbDept {
+  id: string; slug: string; name: string; description?: string;
+  icon_name?: string; image_url?: string; features?: string[];
+  is_active: boolean; order_index: number;
+}
+
+const ICON_MAP: Record<string, string> = {
+  emergency: '🚨', icu: '💉', surgery: '⚕️', pediatrics: '👶',
+  cardiology: '❤️', gynecology: '🌸', 'internal-medicine': '🩺',
+  laboratory: '🔬', radiology: '📡', pharmacy: '💊',
+  maternity: '🤱', dental: '🦷', spiritual: '✝️', holistic: '🌿', mobile: '🚐',
 };
 
-const services = [
-  {
-    id: 'emergency', icon: '🚨', color: '#C8102E', badge: '24/7',
-    name: 'Emergency Care',
-    desc: 'Staffed 24/7 by trained medical professionals. Triage, resuscitation, trauma care, and rapid stabilisation. Our emergency team is always ready — day or night.',
-    features: ['24/7 availability', 'Trauma care', 'Resuscitation unit', 'Triage system'],
-    img: 'https://images.unsplash.com/photo-1587745416684-47953f16f02f?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'icu', icon: '💉', color: '#1B3A6B', badge: null,
-    name: 'Intensive Care Unit (ICU)',
-    desc: 'Dedicated critical care for patients in serious condition. Round-the-clock monitoring and specialist management for life-threatening situations.',
-    features: ['Critical monitoring', '24/7 physician coverage', 'Ventilator support', 'Post-surgical care'],
-    img: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'surgery', icon: '⚕️', color: '#1B3A6B', badge: '1,135 surgeries',
-    name: 'Surgical Procedures',
-    desc: 'State-of-the-art surgical facilities. Over 1,135 surgeries performed in 10 years including general surgery, C-sections, spinal neurosurgery, and pacemaker implantations.',
-    features: ['General surgery', 'Caesarean sections', 'Spinal neurosurgery', 'Pacemaker implantation', 'Minor procedures'],
-    img: 'https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'maternity', icon: '🤱', color: '#D4A017', badge: '1,576 births',
-    name: 'Maternity & Neonatology',
-    desc: 'Mother & Child Pavilion (Building B4, 2023). 1,576 deliveries in 10 years. Prenatal consultations, labour & delivery, postnatal care, and neonatal intensive care unit.',
-    features: ['Prenatal consultations', 'Labour & delivery', 'Caesarean sections', 'Neonatal intensive care', 'Postnatal follow-up'],
-    img: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'pediatrics', icon: '👶', color: '#2952A3', badge: null,
-    name: 'Pediatrics',
-    desc: 'Specialised care for children from birth through adolescence. Neonatal intensive care, child health consultations, vaccinations, and growth monitoring.',
-    features: ['Neonatal ICU', 'Child consultations', 'Vaccinations', 'Growth monitoring', 'Paediatric emergencies'],
-    img: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'cardiology', icon: '❤️', color: '#C8102E', badge: '2 pacemakers',
-    name: 'Cardiology',
-    desc: 'Full cardiac diagnostics and treatment. Our team has successfully implanted 2 pacemakers (2018 and 2020). ECG, cardiac monitoring, and cardiovascular care.',
-    features: ['ECG', 'Pacemaker implantation', 'Cardiac monitoring', 'Heart failure management'],
-    img: 'https://images.unsplash.com/photo-1628595351029-c2bf17511435?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'gynecology', icon: '🌸', color: '#1B3A6B', badge: null,
-    name: 'Gynecology & Obstetrics',
-    desc: 'Complete women\'s healthcare. Gynecological consultations, prenatal care, family planning, and reproductive health services for women of all ages.',
-    features: ['Gynecological exams', 'Prenatal care', 'Family planning', 'Reproductive health', 'Colposcopy'],
-    img: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'laboratory', icon: '🔬', color: '#1B3A6B', badge: '39,757 tests',
-    name: 'Laboratory & Diagnostics',
-    desc: '39,757 tests performed in 10 years. Advanced equipment including biochemistry automat, 31-parameter blood count (URIT 5160), electrophoresis chain, hormone testing, and serological quantification.',
-    features: ['Complete blood count (31 parameters)', 'Biochemistry automat', 'Hormone testing', 'Electrophoresis chain', 'Serological quantification', 'Microscopy & parasitology'],
-    img: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'radiology', icon: '📡', color: '#2952A3', badge: null,
-    name: 'Radiology & Medical Imaging',
-    desc: 'X-ray and ultrasound imaging. Equipment upgraded via FESIDEV container donations including state-of-the-art ultrasound machines for accurate diagnosis.',
-    features: ['Digital X-ray', 'Ultrasound / Echography', 'Diagnostic imaging', 'Antenatal scans'],
-    img: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'internal-medicine', icon: '🩺', color: '#1B3A6B', badge: null,
-    name: 'Internal Medicine',
-    desc: 'Comprehensive adult medical consultations. Chronic disease management — diabetes, hypertension, malaria, typhoid, HIV/AIDS follow-up, and infectious diseases.',
-    features: ['General consultations', 'Chronic disease management', 'Infectious disease', 'Diabetes & hypertension', 'HIV/AIDS follow-up'],
-    img: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'neurology', icon: '🧠', color: '#1B3A6B', badge: null,
-    name: 'Neurology & Neurosurgery',
-    desc: 'Advanced neurological care. Hope Clinic Koumé has performed spinal neurosurgery — a rare and advanced capability for a regional clinic in the East Region of Cameroon.',
-    features: ['Neurological consultations', 'Spinal surgery', 'Stroke management', 'Neurological diagnostics'],
-    img: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'pharmacy', icon: '💊', color: '#2952A3', badge: null,
-    name: 'Pharmacy',
-    desc: 'On-site pharmacy dispensing prescribed medications with qualified pharmacists. Medications regularly supplied through FESIDEV and other partnerships.',
-    features: ['Prescription dispensing', 'Medication counselling', 'Drug availability', 'FESIDEV-supplied stock'],
-    img: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'spiritual', icon: '✝️', color: '#D4A017', badge: null,
-    name: 'Hope Spiritual Clinic',
-    desc: 'Prayer ministry, spiritual counselling, and faith-based healing ministry. Care for spiritual and emotional well-being alongside physical health — healing the whole person.',
-    features: ['Prayer ministry', 'Spiritual counselling', 'Addiction healing', 'Inner healing', 'Pastoral care'],
-    img: 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'holistic', icon: '🌿', color: '#16A34A', badge: null,
-    name: 'Hope Holistic Clinic',
-    desc: 'Integral well-being care. Marital counselling, career guidance, business consultancy, and life coaching for complete wholistic health of individuals and families.',
-    features: ['Marital counselling', 'Career guidance', 'Business consultancy', 'Life coaching', 'Family therapy'],
-    img: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&auto=format&fit=crop',
-  },
-  {
-    id: 'mobile', icon: '🚐', color: '#D4A017', badge: '23 campaigns',
-    name: 'Hope Mobile Clinic',
-    desc: '23 health campaigns conducted. 15,726 patients reached in remote communities. Field trips bring care directly to villages across the East Region and beyond — 713 campaign surgeries, 248 campaign deliveries.',
-    features: ['Community outreach', 'Remote village care', 'Free consultations', 'Campaign surgeries', 'Dental hygiene education'],
-    img: 'https://images.unsplash.com/photo-1584346133934-a3afd65a4f50?w=600&auto=format&fit=crop',
-  },
-];
+async function fetchDepartments(): Promise<DbDept[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('departments')
+    .select('id,slug,name,description,icon_name,image_url,features,is_active,order_index')
+    .eq('is_active', true)
+    .order('order_index');
+  if (error || !data || data.length === 0) {
+    return SEED_DEPTS.map(d => ({
+      id: d.id, slug: d.slug, name: d.name, description: d.description,
+      icon_name: d.iconName, image_url: d.imageUrl, features: [],
+      is_active: d.isActive, order_index: d.order,
+    }));
+  }
+  return data as DbDept[];
+}
 
 const schedule = [
   { days: 'Monday – Wednesday', hours: '08:00 AM – 04:00 PM' },
@@ -127,6 +47,12 @@ const schedule = [
 ];
 
 export default function ServicesPage() {
+  const { data: depts, loading } = useSupabaseRealtime<DbDept[]>(
+    'departments',
+    fetchDepartments,
+    [],
+  );
+
   return (
     <div className="bg-[#F8FAFF]">
 
@@ -175,56 +101,85 @@ export default function ServicesPage() {
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-[#1A1A2E] gold-underline gold-underline-center"
             style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-            All 15 Departments
+            All {loading ? '…' : depts.length} Departments
           </h2>
           <p className="text-[#4A5568] mt-5">Every department staffed by dedicated specialists</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((svc) => (
-            <div key={svc.id} id={svc.id}
-              className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group border-b-4"
-              style={{ borderBottomColor: svc.color }}>
-              <div className="relative h-44 overflow-hidden">
-                <Image src={svc.img} alt={svc.name} fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                <div className="absolute top-3 left-3 flex items-center gap-2">
-                  <span className="text-2xl">{svc.icon}</span>
-                  {svc.badge && (
-                    <span className="bg-[#D4A017] text-[#1B3A6B] text-xs font-bold px-2 py-0.5 rounded-full">
-                      {svc.badge}
-                    </span>
-                  )}
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm animate-pulse">
+                <div className="h-44 bg-[#EBF0FB]" />
+                <div className="p-5 space-y-3">
+                  <div className="h-5 bg-[#EBF0FB] rounded w-3/4" />
+                  <div className="h-3 bg-[#EBF0FB] rounded" />
+                  <div className="h-3 bg-[#EBF0FB] rounded w-5/6" />
+                  <div className="h-9 bg-[#EBF0FB] rounded-lg mt-4" />
                 </div>
               </div>
+            ))}
+          </div>
+        )}
 
-              <div className="p-5">
-                <h3 className="font-bold text-[#1A1A2E] text-lg mb-2 group-hover:text-[#1B3A6B] transition-colors"
-                  style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-                  {svc.name}
-                </h3>
-                <p className="text-[#4A5568] text-sm leading-relaxed mb-4">{svc.desc}</p>
-                <ul className="space-y-1 mb-4">
-                  {svc.features.slice(0, 4).map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-xs text-[#4A5568]">
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: svc.color }} />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/booking"
-                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors text-white"
-                  style={{ backgroundColor: svc.color }}>
-                  Book This Service <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Empty state */}
+        {!loading && depts.length === 0 && (
+          <div className="text-center py-20 text-[#8896B3]">
+            <p className="text-lg font-medium">No departments available.</p>
+            <p className="text-sm mt-1">Please check back later.</p>
+          </div>
+        )}
+
+        {/* Departments grid */}
+        {!loading && depts.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {depts.map((dept) => {
+              const icon = ICON_MAP[dept.slug] || '🏥';
+              const img = dept.image_url || 'https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=600&auto=format&fit=crop';
+              const features = dept.features && dept.features.length > 0 ? dept.features : [];
+              return (
+                <div key={dept.id} id={dept.slug}
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group border-b-4 border-[#0F2340]">
+                  <div className="relative h-44 overflow-hidden">
+                    <Image src={img} alt={dept.name} fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute top-3 left-3">
+                      <span className="text-2xl">{icon}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-5">
+                    <h3 className="font-bold text-[#1A1A2E] text-lg mb-2 group-hover:text-[#1B3A6B] transition-colors"
+                      style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+                      {dept.name}
+                    </h3>
+                    {dept.description && (
+                      <p className="text-[#4A5568] text-sm leading-relaxed mb-4 line-clamp-3">{dept.description}</p>
+                    )}
+                    {features.length > 0 && (
+                      <ul className="space-y-1 mb-4">
+                        {features.slice(0, 4).map((f: string) => (
+                          <li key={f} className="flex items-center gap-2 text-xs text-[#4A5568]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#D4A017] flex-shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <Link href="/booking"
+                      className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors text-white bg-[#0F2340] hover:bg-[#1B3A6B]">
+                      Book This Service <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Special pillars */}
@@ -232,14 +187,14 @@ export default function ServicesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-8"
             style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-            Beyond Medical Care — Hope Clinic's Unique Pillars
+            Beyond Medical Care — Hope Clinic&apos;s Unique Pillars
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { icon: '✝️', color: '#D4A017', title: 'Hope Spiritual Clinic', desc: 'Prayer, pastoral care, and spiritual healing alongside medical treatment. Healing the whole person — body, soul, and spirit.' },
-              { icon: '🌿', color: '#D4A017', title: 'Hope Holistic Clinic',  desc: 'Marital counselling, career guidance, family therapy, and complete wholistic wellbeing — because health is more than the physical.' },
-              { icon: '🚐', color: '#D4A017', title: 'Hope Mobile Clinic',    desc: '23 campaigns, 15,726 patients reached. Field outreach brings healthcare to the most remote villages and underserved communities.' },
-            ].map(({ icon, color, title, desc }) => (
+              { icon: '✝️', title: 'Hope Spiritual Clinic', desc: 'Prayer, pastoral care, and spiritual healing alongside medical treatment. Healing the whole person — body, soul, and spirit.' },
+              { icon: '🌿', title: 'Hope Holistic Clinic',  desc: 'Marital counselling, career guidance, family therapy, and complete wholistic wellbeing — because health is more than the physical.' },
+              { icon: '🚐', title: 'Hope Mobile Clinic',    desc: '23 campaigns, 15,726 patients reached. Field outreach brings healthcare to the most remote villages and underserved communities.' },
+            ].map(({ icon, title, desc }) => (
               <div key={title} className="bg-white/5 border border-white/10 rounded-xl p-6 text-center hover:bg-white/10 transition-all">
                 <div className="text-4xl mb-3">{icon}</div>
                 <h3 className="font-bold text-[#D4A017] text-lg mb-2" style={{ fontFamily: 'Cormorant Garamond, serif' }}>{title}</h3>
