@@ -1,15 +1,11 @@
-import type { Metadata } from 'next';
+'use client';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import Link from 'next/link';
 import { Phone, Mail, MapPin, Clock, MessageCircle, ExternalLink, AlertCircle } from 'lucide-react';
 import { FaFacebookF, FaInstagram } from 'react-icons/fa';
 import ContactMapWrapper from '@/components/map/ContactMapWrapper';
 import ContactForm from '@/components/contact/ContactForm';
-
-export const metadata: Metadata = {
-  title: 'Contact Us',
-  description: 'Contact Hope Clinic Koumé — +237 650 441 422, Quartier Koumé-Bonis, Bertoua, East Region, Cameroon. Emergency care 24/7.',
-};
-
 
 export default function ContactPage() {
   return (
