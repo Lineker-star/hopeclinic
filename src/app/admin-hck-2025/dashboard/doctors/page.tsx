@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
   Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Star,
-  X, Save, RefreshCw, Search, CheckCircle, Upload, AlertCircle,
+  X, Save, RefreshCw, Search, CheckCircle, Upload, AlertCircle, FileText,
 } from 'lucide-react';
 
 interface Education    { degree: string; institution: string; year: string; description?: string }
@@ -34,6 +34,7 @@ interface Doctor {
   certifications?: Certification[];
   achievements?: Achievement[];
   publications?: Publication[];
+  cv_url?: string;
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -162,9 +163,10 @@ function Modal({ doc, onClose, onSave }: {
   onSave: (d: Partial<Doctor>) => Promise<void>;
 }) {
   const [form,      setForm]      = useState<Partial<Doctor>>(doc);
-  const [saving,    setSaving]    = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [langInput, setLangInput] = useState('');
+  const [saving,      setSaving]      = useState(false);
+  const [uploading,   setUploading]   = useState(false);
+  const [uploadingCV, setUploadingCV] = useState(false);
+  const [langInput,   setLangInput]   = useState('');
 
   const set = (k: keyof Doctor, v: unknown) => setForm(f => ({ ...f, [k]: v }));
 
@@ -176,6 +178,17 @@ function Modal({ doc, onClose, onSave }: {
       if (r.ok) { const { url } = await r.json() as { url: string }; if (url) set('image_url', url); }
     } catch { /* ignore */ }
     setUploading(false);
+  };
+
+  const uploadCV = async (file: File) => {
+    setUploadingCV(true);
+    const fd = new FormData(); fd.append('file', file); fd.append('folder', 'doctors-cv');
+    try {
+      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (r.ok) { const { url } = await r.json() as { url: string }; if (url) set('cv_url', url); }
+      else { const e = await r.json().catch(() => ({})) as { error?: string }; alert('CV upload failed: ' + (e.error ?? `HTTP ${r.status}`)); }
+    } catch { alert('Network error uploading CV'); }
+    setUploadingCV(false);
   };
 
   const addLang   = () => { if (!langInput.trim()) return; set('languages', [...(form.languages ?? []), langInput.trim()]); setLangInput(''); };
@@ -331,6 +344,37 @@ function Modal({ doc, onClose, onSave }: {
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.is_active ?? true} onChange={e => set('is_active', e.target.checked)} className="w-4 h-4 accent-[#0F2340]" />
               <span className="text-sm text-[#2D2D2D]">Active / Visible</span>
+            </label>
+          </div>
+
+          {/* ── CV UPLOAD ── */}
+          <div className="col-span-full pt-4 pb-1">
+            <div className={sh}>
+              <div className="flex-1 h-px bg-[#EBF0FB]" />
+              <span className="px-2">Curriculum Vitae (PDF)</span>
+              <div className="flex-1 h-px bg-[#EBF0FB]" />
+            </div>
+          </div>
+          <div>
+            {form.cv_url ? (
+              <div className="flex items-center gap-2 bg-[#F8FAFF] border border-[#D1DCF5] rounded-lg px-3 py-2 mb-2">
+                <FileText className="w-4 h-4 text-[#0F2340] flex-shrink-0" />
+                <span className="text-xs text-[#4A5568] flex-1 truncate">
+                  {decodeURIComponent(form.cv_url.split('/').pop()?.split('?')[0] ?? 'cv.pdf')}
+                </span>
+                <a href={form.cv_url} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-[#1B3A6B] hover:underline flex-shrink-0 font-semibold">View</a>
+                <button type="button" onClick={() => set('cv_url', undefined)}
+                  className="text-red-400 hover:text-red-600 text-xs flex-shrink-0 font-semibold">Remove</button>
+              </div>
+            ) : (
+              <p className="text-xs text-[#8896B3] mb-2">No CV uploaded yet.</p>
+            )}
+            <label className="inline-flex items-center gap-2 bg-[#EBF0FB] text-[#0F2340] px-4 py-2 rounded-lg text-sm cursor-pointer hover:bg-[#D1DCF5] font-semibold">
+              {uploadingCV ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              <span>{uploadingCV ? 'Uploading…' : 'Upload PDF'}</span>
+              <input type="file" accept="application/pdf" className="hidden"
+                onChange={e => e.target.files?.[0] && uploadCV(e.target.files[0])} />
             </label>
           </div>
 

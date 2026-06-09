@@ -5,7 +5,7 @@ import { requireAdmin } from '@/lib/admin/crud';
 
 const BUCKET  = 'hope-clinic-media';
 const MAX_MB  = 10;
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'];
 
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin();

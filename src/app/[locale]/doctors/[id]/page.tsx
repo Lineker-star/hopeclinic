@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   Star, Calendar, Globe, Award, GraduationCap,
   Phone, Mail, Trophy, BookOpen, ArrowRight,
-  BadgeCheck, ArrowLeft, ExternalLink,
+  BadgeCheck, ArrowLeft, ExternalLink, FileText,
 } from 'lucide-react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 
@@ -36,6 +36,7 @@ interface DoctorProfile {
   certifications?: Certification[];
   achievements?: Achievement[];
   publications?: Publication[];
+  cv_url?: string;
 }
 
 function Skeleton() {
@@ -266,6 +267,27 @@ export default function DoctorProfilePage() {
           </div>
         </div>
       </section>
+
+      {/* ── CV DOWNLOAD ── */}
+      {doctor.cv_url && (
+        <section className="max-w-6xl mx-auto px-4 pb-10">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#E8EEF8] flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#EBF0FB] flex items-center justify-center flex-shrink-0">
+              <FileText className="w-6 h-6 text-[#0F2340]" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-[#0F2340] text-base" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+                Curriculum Vitae
+              </h3>
+              <p className="text-[#8896B3] text-sm">Full academic and professional CV available for download.</p>
+            </div>
+            <a href={doctor.cv_url} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#0F2340] text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-[#1B3A6B] transition-colors text-sm flex-shrink-0">
+              <FileText className="w-4 h-4" /> Download CV (PDF)
+            </a>
+          </div>
+        </section>
+      )}
 
       {/* ── EDUCATION ── */}
       <section className="max-w-6xl mx-auto px-4 pb-10">
