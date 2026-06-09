@@ -1,16 +1,11 @@
+'use client';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import type { Metadata } from 'next';
 import Link from 'next/link';
 import { activeClinics, plannedClinics } from '@/data/hope-clinics';
 import NetworkMapWrapper from '@/components/map/NetworkMapWrapper';
 import HopeClinicsListClient from './HopeClinicsListClient';
 import { ExternalLink } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Hope Clinics Global Network',
-  description: '15 active Hope Clinics across 10+ countries. 30,726+ patients served. The global healing network of CMFI Mercy Works.',
-};
 
 const statusConfig = {
   ACTIVE:          { label: 'Active',         color: '#16A34A' },

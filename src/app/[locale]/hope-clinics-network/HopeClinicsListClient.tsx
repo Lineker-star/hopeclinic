@@ -27,7 +27,21 @@ async function fetchClinics(): Promise<HopeClinicLocation[]> {
     .from('hope_clinic_locations')
     .select('*')
     .order('order_index');
-  if (data && data.length > 0) return data as HopeClinicLocation[];
+  if (data && data.length > 0) {
+    return (data as Record<string, unknown>[]).map(r => ({
+      id:          String(r['id'] ?? ''),
+      name:        String(r['name'] ?? ''),
+      city:        String(r['city'] ?? ''),
+      country:     String(r['country'] ?? ''),
+      region:      (r['region'] ?? 'Africa') as HopeClinicLocation['region'],
+      latitude:    Number(r['latitude'] ?? 0),
+      longitude:   Number(r['longitude'] ?? 0),
+      status:      (r['status'] ?? 'ACTIVE') as HopeClinicLocation['status'],
+      yearFounded: (r['year_founded'] ?? r['yearFounded']) as number | undefined,
+      description: r['description'] as string | undefined,
+      imageUrl:    (r['image_url'] ?? r['imageUrl']) as string | undefined,
+    }));
+  }
   return SEED;
 }
 
