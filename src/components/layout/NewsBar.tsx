@@ -1,5 +1,4 @@
 'use client';
-import { createClient } from '@/lib/supabase/client';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 
 interface NewsItem { id: string; content: string; is_active: boolean; order_index: number }
@@ -14,13 +13,15 @@ const DEFAULTS: NewsItem[] = [
 ];
 
 async function fetchNews(): Promise<NewsItem[]> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from('news_bar')
-    .select('id, content, is_active, order_index')
-    .eq('is_active', true)
-    .order('order_index', { ascending: true });
-  return (data && data.length > 0) ? (data as NewsItem[]) : DEFAULTS;
+  try {
+    const res = await fetch('/api/admin/news-bar');
+    if (res.ok) {
+      const data = await res.json() as NewsItem[];
+      const active = data.filter(i => i.is_active).sort((a, b) => a.order_index - b.order_index);
+      if (active.length > 0) return active;
+    }
+  } catch { /* keep defaults */ }
+  return DEFAULTS;
 }
 
 export default function NewsBar() {
