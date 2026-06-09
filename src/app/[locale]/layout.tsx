@@ -22,6 +22,9 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'https://hopeclinic.koume.org'
+  ),
   title: {
     template: '%s | Hope Clinic Koumé — CMFI Healthcare',
     default: 'Hope Clinic Koumé — Healthcare for Everyone | CMFI Mercy Works',
