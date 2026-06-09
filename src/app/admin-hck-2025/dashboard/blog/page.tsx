@@ -1,38 +1,52 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Edit3, Trash2, Eye, EyeOff, Star, Search, Tag, RefreshCw } from 'lucide-react';
+import { Plus, Edit3, Trash2, Eye, EyeOff, Star, Search, Tag, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 interface Post { id: string; slug: string; title: string; excerpt?: string; cover_image_url?: string; category: string; tags?: string[]; author_name?: string; author_image_url?: string; is_published: boolean; is_featured: boolean; published_at?: string; reading_time_minutes?: number; created_at?: string }
 
 const CATEGORIES = ['All', 'Events & Campaigns', 'Health Awareness', 'Clinic News', 'Medical Achievements', 'Partnerships'];
 const STATUS_OPTS = ['ALL', 'PUBLISHED', 'DRAFT'];
 
 export default function BlogManager() {
-  const [posts,    setPosts]    = useState<Post[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState('');
-  const [catFilter,setCatFilter] = useState('All');
-  const [statFilter,setStatFilter] = useState('ALL');
+  const [posts,      setPosts]      = useState<Post[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState('');
+  const [catFilter,  setCatFilter]  = useState('All');
+  const [statFilter, setStatFilter] = useState('ALL');
+  const [toast,      setToast]      = useState<{ msg: string; ok: boolean } | null>(null);
 
-  useEffect(() => {
-    fetch('/api/admin/blog').then(r => r.ok ? r.json() : []).then(d => setPosts(Array.isArray(d) ? d : [])).catch(() => setPosts([])).finally(() => setLoading(false));
+  const showToast = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/blog');
+      if (r.ok) setPosts(await r.json() as Post[]);
+      else showToast(`Load failed (HTTP ${r.status})`, false);
+    } catch { showToast('Network error loading posts', false); }
+    setLoading(false);
   }, []);
 
+  useEffect(() => { load(); }, [load]);
+
   const togglePublished = async (id: string) => {
-    const post = posts.find(p => p.id === id)!;
+    const post = posts.find(p => p.id === id);
+    if (!post) return;
     const nowPublished = !post.is_published;
-    setPosts(prev => prev.map(p => p.id === id
-      ? { ...p, is_published: nowPublished, published_at: nowPublished ? new Date().toISOString() : p.published_at }
-      : p
-    ));
-    await fetch(`/api/admin/blog/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_published: nowPublished, published_at: nowPublished ? new Date().toISOString() : null }) }).catch(() => {});
+    const r = await fetch(`/api/admin/blog/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_published: nowPublished, published_at: nowPublished ? new Date().toISOString() : null }),
+    }).catch(() => null);
+    if (r?.ok) await load();
+    else showToast('Toggle failed', false);
   };
 
   const deletePost = async (id: string) => {
     if (!confirm('Delete this post?')) return;
-    setPosts(p => p.filter(x => x.id !== id));
-    await fetch(`/api/admin/blog/${id}`, { method: 'DELETE' }).catch(() => {});
+    const r = await fetch(`/api/admin/blog/${id}`, { method: 'DELETE' }).catch(() => null);
+    if (r?.ok) { showToast('Deleted'); await load(); }
+    else { const e = await r?.json().catch(() => ({})) as { error?: string }; showToast('Delete failed: ' + (e?.error ?? 'Server error'), false); }
   };
 
   const filtered = posts.filter(p => {
@@ -47,6 +61,12 @@ export default function BlogManager() {
 
   return (
     <div>
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${toast.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+          {toast.ok ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {toast.msg}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#0F2340]" style={{ fontFamily: 'Cormorant Garamond, serif' }}>Blog & News Manager</h1>

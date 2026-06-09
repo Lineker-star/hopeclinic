@@ -1,78 +1,76 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
-import { blogPosts as SEED } from '@/data/blog-posts';
 import { Clock, Tag, ArrowLeft, ArrowRight } from 'lucide-react';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 
-interface DbPost {
+interface Post {
   id: string; slug: string; title: string; excerpt?: string; content?: string;
   cover_image_url?: string; category: string; tags?: string[];
   author_name?: string; author_image_url?: string;
   is_published: boolean; published_at?: string; reading_time_minutes?: number;
 }
 
-async function getPost(slug: string): Promise<DbPost | null> {
-  try {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .eq('slug', slug)
-      .eq('is_published', true)
-      .single();
-    if (data) return data as DbPost;
-  } catch { /* fallthrough */ }
-
-  const seed = SEED.find(p => p.slug === slug);
-  if (!seed) return null;
-  return {
-    id: seed.id, slug: seed.slug, title: seed.title, excerpt: seed.excerpt,
-    content: seed.content, cover_image_url: seed.coverImage,
-    category: seed.category, tags: seed.tags,
-    author_name: seed.author, author_image_url: seed.authorImage,
-    is_published: true, published_at: seed.publishedAt,
-    reading_time_minutes: seed.readingTime,
-  };
+function Skeleton() {
+  return (
+    <div className="animate-pulse bg-[#F9F6F1]">
+      <div className="h-72 sm:h-96 bg-[#D1DCF5]" />
+      <div className="max-w-4xl mx-auto px-4 py-12 space-y-4">
+        <div className="h-14 bg-[#D1DCF5] rounded-2xl" />
+        <div className="h-64 bg-[#D1DCF5] rounded-2xl" />
+      </div>
+    </div>
+  );
 }
 
-async function getAllPosts(): Promise<DbPost[]> {
-  try {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from('blog_posts')
-      .select('id,slug,title')
-      .eq('is_published', true)
-      .order('published_at', { ascending: false });
-    if (data && data.length > 0) return data as DbPost[];
-  } catch { /* fallthrough */ }
-  return SEED.map(s => ({
-    id: s.id, slug: s.slug, title: s.title, category: s.category, is_published: true,
-  }));
+function NotFound() {
+  return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 bg-[#F9F6F1]">
+      <h1 className="text-2xl font-bold text-[#1A1A1A] mb-2" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+        Post Not Found
+      </h1>
+      <p className="text-[#9A9A9A] mb-6">This article doesn&apos;t exist or has been removed.</p>
+      <Link href="/blog"
+        className="flex items-center gap-2 bg-[#C8102E] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#A30D26] transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Back to Blog
+      </Link>
+    </div>
+  );
 }
 
-type Props = { params: Promise<{ slug: string; locale: string }> };
+export default function BlogPostPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [navPosts, setNavPosts] = useState<Pick<Post, 'id' | 'slug' | 'title'>[]>([]);
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const post = await getPost(slug);
-  if (!post) return { title: 'Post Not Found' };
-  return { title: post.title, description: post.excerpt };
-}
+  const fetchPost = useCallback(async (): Promise<Post | null> => {
+    try {
+      const r = await fetch(`/api/admin/blog?slug=${encodeURIComponent(slug)}`);
+      if (r.ok) return r.json() as Promise<Post>;
+    } catch { /* fallthrough */ }
+    return null;
+  }, [slug]);
 
-export default async function BlogPostPage({ params }: Props) {
-  const { slug } = await params;
-  const [post, allPosts] = await Promise.all([getPost(slug), getAllPosts()]);
-  if (!post) notFound();
+  const { data: post, loading } = useSupabaseRealtime<Post | null>(
+    'blog_posts', fetchPost, null, `slug=eq.${slug}`,
+  );
 
-  const idx = allPosts.findIndex(p => p.slug === slug);
-  const prev = allPosts[idx + 1];
-  const next = allPosts[idx - 1];
+  useEffect(() => {
+    fetch('/api/admin/blog')
+      .then(r => r.ok ? r.json() : [])
+      .then((posts: Post[]) => setNavPosts(posts.filter(p => p.is_published)))
+      .catch(() => {});
+  }, []);
 
-  const coverImg = post.cover_image_url || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop';
+  if (loading) return <Skeleton />;
+  if (!post) return <NotFound />;
+
+  const idx      = navPosts.findIndex(p => p.slug === slug);
+  const prevPost = navPosts[idx + 1];
+  const nextPost = navPosts[idx - 1];
+
+  const coverImg  = post.cover_image_url || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop';
   const authorImg = post.author_image_url || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&auto=format&fit=crop';
 
   return (
@@ -123,7 +121,7 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
           {post.tags && post.tags.length > 0 && (
             <div className="ml-auto hidden sm:flex flex-wrap gap-1.5">
-              {post.tags.slice(0, 3).map((tag) => (
+              {post.tags.slice(0, 3).map(tag => (
                 <span key={tag} className="text-xs px-2 py-0.5 bg-[#F2F0ED] text-[#4A4A4A] rounded-full">#{tag}</span>
               ))}
             </div>
@@ -137,28 +135,29 @@ export default async function BlogPostPage({ params }: Props) {
           prose-a:text-[#C8102E] prose-a:no-underline hover:prose-a:underline
           prose-strong:text-[#1A1A1A] prose-ul:text-[#5A5A5A] prose-ol:text-[#5A5A5A]
           prose-table:text-sm prose-th:bg-[#F9F6F1] prose-th:text-[#1A1A1A]"
-          style={{ fontFamily: 'Nunito, sans-serif' }}
-        >
+          style={{ fontFamily: 'Nunito, sans-serif' }}>
           <div dangerouslySetInnerHTML={{ __html: (post.content || '').replace(/\n/g, '<br/>') }} />
         </div>
 
         {/* Navigation */}
-        {(prev || next) && (
+        {(prevPost || nextPost) && (
           <div className="flex gap-4 mt-10">
-            {next && (
-              <Link href={`/blog/${next.slug}`} className="flex-1 flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all group">
+            {nextPost && (
+              <Link href={`/blog/${nextPost.slug}`}
+                className="flex-1 flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all group">
                 <ArrowLeft className="w-5 h-5 text-[#C8102E] flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[#9A9A9A] text-xs">Previous</p>
-                  <p className="font-semibold text-[#1A1A1A] text-sm truncate group-hover:text-[#C8102E] transition-colors">{next.title}</p>
+                  <p className="font-semibold text-[#1A1A1A] text-sm truncate group-hover:text-[#C8102E] transition-colors">{nextPost.title}</p>
                 </div>
               </Link>
             )}
-            {prev && (
-              <Link href={`/blog/${prev.slug}`} className="flex-1 flex items-center justify-end gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all group text-right">
+            {prevPost && (
+              <Link href={`/blog/${prevPost.slug}`}
+                className="flex-1 flex items-center justify-end gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all group text-right">
                 <div className="min-w-0">
                   <p className="text-[#9A9A9A] text-xs">Next</p>
-                  <p className="font-semibold text-[#1A1A1A] text-sm truncate group-hover:text-[#C8102E] transition-colors">{prev.title}</p>
+                  <p className="font-semibold text-[#1A1A1A] text-sm truncate group-hover:text-[#C8102E] transition-colors">{prevPost.title}</p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-[#C8102E] flex-shrink-0" />
               </Link>
@@ -168,7 +167,8 @@ export default async function BlogPostPage({ params }: Props) {
 
         {/* Back to blog */}
         <div className="text-center mt-8">
-          <Link href="/blog" className="inline-flex items-center gap-2 text-[#C8102E] font-semibold hover:underline">
+          <Link href="/blog"
+            className="inline-flex items-center gap-2 text-[#C8102E] font-semibold hover:underline">
             <ArrowLeft className="w-4 h-4" /> Back to All Articles
           </Link>
         </div>
