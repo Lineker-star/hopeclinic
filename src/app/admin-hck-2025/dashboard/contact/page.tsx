@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { Mail, MailOpen, Trash2, MessageSquare, RefreshCw, Search, Reply } from 'lucide-react';
+import { Mail, MailOpen, Trash2, MessageSquare, RefreshCw, Search, Reply, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface Message {
   id: string; name: string; email: string; phone?: string;
@@ -9,13 +9,6 @@ interface Message {
   created_at: string;
 }
 
-const DEMO: Message[] = [
-  { id: '1', name: 'Chantal Mbono',    email: 'chantal@example.com',  phone: '+237 670 111 222', subject: 'Appointment inquiry',  message: "Hello, I would like to know how to book an appointment for my son. He is 5 years old and needs a pediatric consultation. Can you help me?", language: 'en', is_read: false, is_replied: false, created_at: '2025-06-03T08:00:00Z' },
-  { id: '2', name: 'Pierre Essomba',   email: 'pierre@example.com',   phone: '+237 690 333 444', subject: 'Information on cardiology', message: "Bonjour, je voudrais avoir des informations sur le service de cardiologie. Mon père a des douleurs cardiaques et nous souhaitons le faire examiner.", language: 'fr', is_read: false, is_replied: false, created_at: '2025-06-02T14:30:00Z' },
-  { id: '3', name: 'Fatima Diallo',    email: 'fatima@example.com',   phone: '+237 655 555 666', subject: 'Thank you',             message: "I just wanted to say thank you to Dr. Enoh and the whole maternity team for their wonderful care during my delivery. My baby and I are doing great!", language: 'en', is_read: true,  is_replied: true,  admin_notes: 'Sent thank you reply', created_at: '2025-06-01T10:00:00Z' },
-  { id: '4', name: 'Emmanuel Bindzi',  email: 'emmanuel@example.com', phone: '+237 677 777 888', subject: 'Partnership inquiry',   message: "We are an NGO working in the East Region. We would like to explore a partnership with Hope Clinic for our upcoming health campaign in October.", language: 'en', is_read: true,  is_replied: false, created_at: '2025-05-30T09:00:00Z' },
-  { id: '5', name: 'Marcelle Nkongo',  email: 'marcelle@example.com', phone: '+237 699 999 000', subject: 'General inquiry',      message: "Quels sont vos tarifs pour une consultation générale? Acceptez-vous les assurances maladie?", language: 'fr', is_read: false, is_replied: false, created_at: '2025-05-29T16:00:00Z' },
-];
 
 export default function ContactManager() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -25,13 +18,17 @@ export default function ContactManager() {
   const [search,   setSearch]   = useState('');
   const [noteText, setNoteText] = useState('');
   const [saving,   setSaving]   = useState(false);
+  const [toast,    setToast]    = useState<{ msg: string; ok: boolean } | null>(null);
+
+  const showToast = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
 
   const fetchMessages = useCallback(async () => {
+    setLoading(true);
     try {
       const r = await fetch(`/api/admin/contact${filter !== 'ALL' ? `?filter=${filter}` : ''}`);
-      const d = r.ok ? await r.json() as Message[] : null;
-      setMessages(d?.length ? d : DEMO);
-    } catch { setMessages(DEMO); }
+      if (r.ok) setMessages(await r.json() as Message[]);
+      else showToast(`Load failed (HTTP ${r.status})`, false);
+    } catch { showToast('Network error loading messages', false); }
     setLoading(false);
   }, [filter]);
 
@@ -50,29 +47,41 @@ export default function ContactManager() {
   }, [fetchMessages]);
 
   const markRead = async (id: string) => {
-    setMessages(p => p.map(m => m.id === id ? { ...m, is_read: true } : m));
-    await fetch(`/api/admin/contact/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_read: true }) }).catch(() => {});
+    const r = await fetch(`/api/admin/contact/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_read: true }),
+    }).catch(() => null);
+    if (r?.ok) await fetchMessages();
   };
 
   const markReplied = async (id: string) => {
-    setMessages(p => p.map(m => m.id === id ? { ...m, is_replied: true } : m));
-    if (selected?.id === id) setSelected(s => s ? { ...s, is_replied: true } : null);
-    await fetch(`/api/admin/contact/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_replied: true }) }).catch(() => {});
+    const r = await fetch(`/api/admin/contact/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_replied: true }),
+    }).catch(() => null);
+    if (r?.ok) { showToast('Marked as replied'); await fetchMessages(); }
+    else showToast('Failed to update', false);
   };
 
   const deleteMsg = async (id: string) => {
     if (!confirm('Delete this message?')) return;
-    setMessages(p => p.filter(m => m.id !== id));
-    if (selected?.id === id) setSelected(null);
-    await fetch(`/api/admin/contact/${id}`, { method: 'DELETE' }).catch(() => {});
+    const r = await fetch(`/api/admin/contact/${id}`, { method: 'DELETE' }).catch(() => null);
+    if (r?.ok) {
+      if (selected?.id === id) setSelected(null);
+      showToast('Deleted');
+      await fetchMessages();
+    } else showToast('Delete failed', false);
   };
 
   const saveNote = async () => {
     if (!selected) return;
     setSaving(true);
-    setMessages(p => p.map(m => m.id === selected.id ? { ...m, admin_notes: noteText } : m));
-    setSelected(s => s ? { ...s, admin_notes: noteText } : null);
-    await fetch(`/api/admin/contact/${selected.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin_notes: noteText }) }).catch(() => {});
+    const r = await fetch(`/api/admin/contact/${selected.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_notes: noteText }),
+    }).catch(() => null);
+    if (r?.ok) { showToast('Note saved'); await fetchMessages(); }
+    else showToast('Save failed', false);
     setSaving(false);
   };
 
@@ -92,6 +101,12 @@ export default function ContactManager() {
 
   return (
     <div>
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${toast.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+          {toast.ok ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {toast.msg}
+        </div>
+      )}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#0F2340]" style={{ fontFamily: 'Cormorant Garamond, serif' }}>Contact Messages</h1>
         <p className="text-[#8896B3] text-sm">{unread} unread · {unreplied} awaiting reply · {messages.length} total</p>
