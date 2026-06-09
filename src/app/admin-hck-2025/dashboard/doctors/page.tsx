@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Star, X, Save, RefreshCw, Search, CheckCircle, Upload } from 'lucide-react';
-import { doctors as SEED } from '@/data/doctors';
 
 interface Doctor {
   id: string; name: string; title_prefix: string; role: string;
@@ -157,20 +156,13 @@ export default function DoctorsManager() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const toRows = (): Doctor[] => SEED.map(d => ({
-    id: d.id, name: d.name, title_prefix: d.titlePrefix, role: d.specialization,
-    specialization: d.specialization, bio: d.bio, image_url: d.imageUrl,
-    experience_years: d.experience, languages: d.languages,
-    available_days: d.availableDays, is_featured: false, is_active: d.isActive, order_index: 0,
-  }));
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await fetch('/api/admin/doctors');
-      if (r.ok) { const d = await r.json() as Doctor[]; setDoctors(d.length ? d : toRows()); }
-      else setDoctors(toRows());
-    } catch { setDoctors(toRows()); }
+      if (r.ok) { setDoctors(await r.json() as Doctor[]); }
+      else setDoctors([]);
+    } catch { setDoctors([]); }
     setLoading(false);
   }, []);
 
@@ -197,12 +189,14 @@ export default function DoctorsManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+      if (!r.ok) {
+        const err = await r.json() as { error?: string };
+        showToast('Save failed: ' + (err.error ?? 'Server error')); setModal(null); return;
+      }
       const d = await r.json() as Doctor;
       setDoctors(p => form.id ? p.map(x => x.id === d.id ? d : x) : [...p, d]);
       showToast('Saved — doctors page updated!');
-    } catch {
-      setDoctors(p => form.id ? p.map(x => x.id === form.id ? { ...x, ...form } as Doctor : x) : [...p, { ...form, id: Date.now().toString() } as Doctor]);
-    }
+    } catch { showToast('Network error — please try again'); }
     setModal(null);
   };
 
@@ -243,6 +237,15 @@ export default function DoctorsManager() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filtered.length === 0 && (
+            <div className="col-span-full bg-white rounded-xl border border-dashed border-[#D1DCF5] p-14 text-center">
+              <p className="text-[#8896B3] text-sm mb-4">No doctors in the database yet.</p>
+              <button onClick={() => setModal({ title_prefix: 'Dr.', is_active: true, is_featured: false, languages: [], available_days: [] })}
+                className="flex items-center gap-2 bg-[#0F2340] text-white px-4 py-2 rounded-lg text-sm font-semibold mx-auto hover:bg-[#1B3A6B]">
+                <Plus className="w-4 h-4" /> Add First Doctor
+              </button>
+            </div>
+          )}
           {filtered.map(doc => (
             <div key={doc.id} className={`bg-white rounded-xl border overflow-hidden shadow-sm ${!doc.is_active ? 'opacity-60' : 'border-[#D1DCF5]'}`}>
               <div className="relative h-48 bg-[#EBF0FB]">
