@@ -1,6 +1,6 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { activeClinics, plannedClinics } from '@/data/hope-clinics';
 import NetworkMapWrapper from '@/components/map/NetworkMapWrapper';
 import HopeClinicsListClient from './HopeClinicsListClient';
 import { ExternalLink } from 'lucide-react';
@@ -13,6 +13,19 @@ const statusConfig = {
 } as const;
 
 export default function HopeClinicsNetworkPage() {
+  const [activeCt, setActiveCt]   = useState(0);
+  const [plannedCt, setPlannedCt] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/admin/network')
+      .then(r => r.ok ? r.json() : [])
+      .then((locs: { status: string }[]) => {
+        setActiveCt(locs.filter(l => l.status === 'ACTIVE').length);
+        setPlannedCt(locs.filter(l => l.status === 'PLANNED' || l.status === 'IN_CONSTRUCTION').length);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="bg-[#F8FAFF]">
 
@@ -27,14 +40,14 @@ export default function HopeClinicsNetworkPage() {
             The Global Hope Clinic Network
           </h1>
           <p className="text-white/80 text-lg mb-8">
-            15 Functional Clinics | 30,726+ Patients | 10+ Countries | 1 Mission
+            Functional Clinics | 30,726+ Patients | 10+ Countries | 1 Mission
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
             {[
-              { n: activeClinics.length.toString(), label: 'Active Clinics' },
-              { n: '30,726+',                        label: 'Patients (Latest Yr)' },
-              { n: '10+',                            label: 'Countries' },
-              { n: `${plannedClinics.length}+`,      label: 'Clinics Planned' },
+              { n: activeCt > 0 ? activeCt.toString() : '…',       label: 'Active Clinics' },
+              { n: '30,726+',                                        label: 'Patients (Latest Yr)' },
+              { n: '10+',                                            label: 'Countries' },
+              { n: plannedCt > 0 ? `${plannedCt}+` : '…',           label: 'Clinics Planned' },
             ].map(({ n, label }) => (
               <div key={label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                 <div className="text-3xl font-bold text-[#D4A017]"

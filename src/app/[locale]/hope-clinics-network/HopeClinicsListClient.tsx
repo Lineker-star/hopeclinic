@@ -1,7 +1,6 @@
 'use client';
 import { MapPin, Calendar, CheckCircle, Clock, Navigation } from 'lucide-react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
-import { hopeClinicLocations as SEED } from '@/data/hope-clinics';
 import type { HopeClinicLocation } from '@/types';
 
 const statusConfig = {
@@ -39,21 +38,18 @@ function mapClinic(r: Record<string, unknown>): HopeClinicLocation {
 async function fetchClinics(): Promise<HopeClinicLocation[]> {
   try {
     const res = await fetch('/api/admin/network');
-    if (res.ok) {
-      const data = await res.json() as Record<string, unknown>[];
-      if (data.length > 0) return data.map(mapClinic);
-    }
+    if (res.ok) return (await res.json() as Record<string, unknown>[]).map(mapClinic);
   } catch (e) {
     console.error('[fetchClinics] API error:', e);
   }
-  return SEED;
+  return [];
 }
 
 export default function HopeClinicsListClient() {
   const { data: clinics, loading } = useSupabaseRealtime<HopeClinicLocation[]>(
     'hope_clinic_locations',
     fetchClinics,
-    SEED,
+    [],
   );
 
   if (loading) {
