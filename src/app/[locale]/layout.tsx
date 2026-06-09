@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Nunito } from 'next/font/google';
 import TopBar from '@/components/layout/TopBar';
+import { RealtimeStatus } from '@/components/debug/RealtimeStatus';
 import Navbar from '@/components/layout/Navbar';
 import NewsBar from '@/components/layout/NewsBar';
 import Footer from '@/components/layout/Footer';
@@ -63,6 +64,7 @@ export default async function LocaleLayout({
       </main>
       <Footer />
       <EmergencyFloat />
+      <RealtimeStatus />
     </div>
   );
 }

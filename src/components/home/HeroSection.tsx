@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ChevronDown, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { createClient } from '@/lib/supabase/client';
 
 const DEFAULT_IMAGES = [
   'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1920&q=80',
@@ -53,7 +54,21 @@ export default function HeroSection() {
         }
       } catch { /* keep defaults */ }
     };
+
     load();
+
+    // Real-time subscription — fires load() whenever admin saves site_settings
+    const supabase = createClient();
+    const channel = supabase
+      .channel('hero_site_settings_realtime')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'site_settings' }, () => { load(); })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED')    console.log('✅ Realtime active for table: site_settings (hero)');
+        if (status === 'CHANNEL_ERROR') console.error('❌ Realtime error for table: site_settings (hero)');
+      });
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {

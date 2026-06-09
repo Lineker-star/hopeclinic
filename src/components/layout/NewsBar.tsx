@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 
 interface NewsItem { id: string; content: string; is_active: boolean; order_index: number }
 
@@ -12,43 +13,18 @@ const DEFAULTS: NewsItem[] = [
   { id: '6', content: '🏆 Hope Clinic eligible for Government Universal Health Coverage (CSU)', is_active: true, order_index: 5 },
 ];
 
+async function fetchNews(): Promise<NewsItem[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('news_bar')
+    .select('id, content, is_active, order_index')
+    .eq('is_active', true)
+    .order('order_index', { ascending: true });
+  return (data && data.length > 0) ? (data as NewsItem[]) : DEFAULTS;
+}
+
 export default function NewsBar() {
-  const [items, setItems] = useState<NewsItem[]>(DEFAULTS);
-
-  useEffect(() => {
-    let channel: ReturnType<typeof import('@/lib/supabase')['supabase']['channel']> | null = null;
-
-    const fetchItems = async () => {
-      try {
-        const { supabase } = await import('@/lib/supabase');
-        const { data } = await supabase
-          .from('news_bar')
-          .select('id, content, is_active, order_index')
-          .eq('is_active', true)
-          .order('order_index', { ascending: true });
-        if (data && data.length > 0) setItems(data as NewsItem[]);
-      } catch { /* keep defaults */ }
-    };
-
-    const subscribe = async () => {
-      await fetchItems();
-      try {
-        const { supabase } = await import('@/lib/supabase');
-        channel = supabase
-          .channel('news_bar_live')
-          .on('postgres_changes' as 'postgres_changes', { event: '*', schema: 'public', table: 'news_bar' }, fetchItems)
-          .subscribe();
-      } catch { /* Supabase not configured */ }
-    };
-
-    subscribe();
-
-    return () => {
-      if (channel) {
-        import('@/lib/supabase').then(({ supabase }) => supabase.removeChannel(channel!));
-      }
-    };
-  }, []);
+  const { data: items } = useSupabaseRealtime<NewsItem[]>('news_bar', fetchNews, DEFAULTS);
 
   const visible = items.filter(i => i.is_active);
   if (visible.length === 0) return null;

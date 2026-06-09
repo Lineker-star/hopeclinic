@@ -1,4 +1,6 @@
 'use client';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -32,6 +34,7 @@ export default function StaffPage() {
     filter: { is_active: true },
     orderBy: 'order_index',
     fallback: SEED_STAFF,
+    realtimeTable: 'staff',
   });
 
   const members = allStaff.filter(s => s.category === activeTab).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));

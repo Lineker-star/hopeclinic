@@ -1,8 +1,12 @@
 'use client';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { X, ZoomIn, Play } from 'lucide-react';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
+import { createClient } from '@/lib/supabase/client';
 
 const categories = [
   { id: 'all',          label: 'All Photos',        labelFr: 'Toutes les Photos' },
@@ -13,7 +17,9 @@ const categories = [
   { id: 'construction', label: 'Growth & Buildings',labelFr: 'Croissance & Bâtiments' },
 ];
 
-const galleryImages = [
+interface GalleryImage { id: string; url: string; category: string; caption: string }
+
+const SEED_IMAGES: GalleryImage[] = [
   { id: '1',  url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop',  category: 'facility',     caption: 'Hope Clinic Koumé — Main Campus, Bertoua' },
   { id: '2',  url: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?w=800&auto=format&fit=crop',  category: 'medical-team', caption: 'Our Medical Team at Work' },
   { id: '3',  url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&auto=format&fit=crop',    category: 'medical-team', caption: 'Compassionate Patient Care' },
@@ -38,13 +44,36 @@ const videos = [
   { id: 'v3', thumbnail: 'https://images.unsplash.com/photo-1589519160732-57fc498494f8?w=600&auto=format&fit=crop', title: 'Hope Mobile Clinic — East Region' },
 ];
 
-// Vary image aspect ratio for masonry effect
 const heights = ['h-52', 'h-64', 'h-48', 'h-72', 'h-56', 'h-60', 'h-44', 'h-68', 'h-52', 'h-56', 'h-64', 'h-48', 'h-60', 'h-52', 'h-56', 'h-64'];
+
+async function fetchGallery(): Promise<GalleryImage[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('gallery_items')
+    .select('id, url, image_url, category, caption, alt')
+    .eq('is_active', true)
+    .order('order_index');
+  if (data && data.length > 0) {
+    return data.map((r: Record<string, unknown>) => ({
+      id:      String(r.id),
+      url:     String(r.url ?? r.image_url ?? ''),
+      category: String(r.category ?? 'facility'),
+      caption: String(r.caption ?? r.alt ?? ''),
+    }));
+  }
+  return SEED_IMAGES;
+}
 
 export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [lightboxIdx, setLightboxIdx]       = useState<number | null>(null);
   const [activeTab, setActiveTab]           = useState<'photos' | 'videos'>('photos');
+
+  const { data: galleryImages } = useSupabaseRealtime<GalleryImage[]>(
+    'gallery_items',
+    fetchGallery,
+    SEED_IMAGES,
+  );
 
   const filtered = activeCategory === 'all'
     ? galleryImages
@@ -159,7 +188,6 @@ export default function GalleryPage() {
             onClick={() => setLightboxIdx(null)}>
             <X className="w-5 h-5" />
           </button>
-          {/* prev */}
           <button
             className="absolute left-4 top-1/2 -translate-y-1/2 text-white w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
             onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx - 1 + filtered.length) % filtered.length); }}>
@@ -172,7 +200,6 @@ export default function GalleryPage() {
             />
             <p className="text-white/70 text-center mt-3 text-sm">{filtered[lightboxIdx].caption}</p>
           </div>
-          {/* next */}
           <button
             className="absolute right-4 top-1/2 -translate-y-1/2 text-white w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
             onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx + 1) % filtered.length); }}>
