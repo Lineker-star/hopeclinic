@@ -17,19 +17,17 @@ const DEFAULT_IMAGES = [
 ];
 
 interface HeroState {
-  badge:       string;
-  title:       string;
-  titleItalic: string;
-  subtitle:    string;
-  cta1:        string;
-  cta2:        string;
+  badge:    string;
+  title:    string;
+  subtitle: string;
+  cta1:     string;
+  cta2:     string;
 }
 
 const DEFAULT_HERO: HeroState = {
-  badge:       'CMFI Mercy Works — Hope Clinic Koumé',
-  title:       'Quality Medical Care',
-  titleItalic: 'at Our Modern Clinic',
-  subtitle:    'With our modern facilities and skilled medical staff, we provide quality care in a comfortable and healing environment.',
+  badge:    'CMFI Mercy Works — Hope Clinic Koumé',
+  title:    'Quality Medical Care at Our Modern Clinic',
+  subtitle: 'With our modern facilities and skilled medical staff, we provide quality care in a comfortable and healing environment.',
   cta1: 'Book Appointment',
   cta2: 'View Our Services',
 };
@@ -63,12 +61,11 @@ export default function HeroSection() {
           const v = hd.value as Partial<HeroState>;
           setHero(prev => ({
             ...prev,
-            badge:       v.badge       ?? prev.badge,
-            title:       v.title       ?? prev.title,
-            titleItalic: v.titleItalic ?? prev.titleItalic,
-            subtitle:    v.subtitle    ?? prev.subtitle,
-            cta1:        v.cta1        ?? prev.cta1,
-            cta2:        v.cta2        ?? prev.cta2,
+            badge:    v.badge    ?? prev.badge,
+            title:    v.title    ?? prev.title,
+            subtitle: v.subtitle ?? prev.subtitle,
+            cta1:     v.cta1     ?? prev.cta1,
+            cta2:     v.cta2     ?? prev.cta2,
           }));
         }
         const imgs = applyImages(id?.value);
@@ -97,12 +94,11 @@ export default function HeroSection() {
             const v = value as Partial<HeroState>;
             setHero(prev => ({
               ...prev,
-              badge:       v.badge       ?? prev.badge,
-              title:       v.title       ?? prev.title,
-              titleItalic: v.titleItalic ?? prev.titleItalic,
-              subtitle:    v.subtitle    ?? prev.subtitle,
-              cta1:        v.cta1        ?? prev.cta1,
-              cta2:        v.cta2        ?? prev.cta2,
+              badge:    v.badge    ?? prev.badge,
+              title:    v.title    ?? prev.title,
+              subtitle: v.subtitle ?? prev.subtitle,
+              cta1:     v.cta1     ?? prev.cta1,
+              cta2:     v.cta2     ?? prev.cta2,
             }));
           }
 
@@ -157,8 +153,7 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: 0.1 }}
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 leading-tight"
           style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-          {hero.title}<br />
-          <span className="text-[#D4A017] italic">{hero.titleItalic}</span>
+          {hero.title}
         </motion.h1>
 
         <motion.p
