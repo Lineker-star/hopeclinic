@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { X, ZoomIn, Play } from 'lucide-react';
@@ -16,24 +16,6 @@ const categories = [
 
 interface GalleryImage { id: string; url: string; category: string; caption: string }
 
-const SEED_IMAGES: GalleryImage[] = [
-  { id: '1',  url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop',  category: 'facility',     caption: 'Hope Clinic Koumé — Main Campus, Bertoua' },
-  { id: '2',  url: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?w=800&auto=format&fit=crop',  category: 'medical-team', caption: 'Our Medical Team at Work' },
-  { id: '3',  url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&auto=format&fit=crop',    category: 'medical-team', caption: 'Compassionate Patient Care' },
-  { id: '4',  url: 'https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=800&auto=format&fit=crop',    category: 'facility',     caption: 'Surgical Block — Hope Clinic Koumé' },
-  { id: '5',  url: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&auto=format&fit=crop', category: 'campaigns',    caption: 'Community Health Campaign — East Region' },
-  { id: '6',  url: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=800&auto=format&fit=crop', category: 'medical-team', caption: 'Maternity Ward — Mother & Child Pavilion (B4)' },
-  { id: '7',  url: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=800&auto=format&fit=crop', category: 'medical-team', caption: 'Paediatric Consultation with Dr. Enoh' },
-  { id: '8',  url: 'https://images.unsplash.com/photo-1628595351029-c2bf17511435?w=800&auto=format&fit=crop', category: 'equipment',    caption: 'Cardiac Monitoring Equipment' },
-  { id: '9',  url: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&auto=format&fit=crop', category: 'facility',     caption: 'Advanced Laboratory — URIT 5160 Blood Analyser' },
-  { id: '10', url: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=800&auto=format&fit=crop', category: 'equipment',    caption: 'Radiology & Ultrasound Unit' },
-  { id: '11', url: 'https://images.unsplash.com/photo-1589519160732-57fc498494f8?w=800&auto=format&fit=crop', category: 'campaigns',    caption: 'Hope Mobile Clinic — Community Outreach' },
-  { id: '12', url: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=800&auto=format&fit=crop', category: 'facility',     caption: 'On-site Pharmacy — Hope Clinic Koumé' },
-  { id: '13', url: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop', category: 'construction', caption: 'Building Progress — Hope Clinic Campus' },
-  { id: '14', url: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&auto=format&fit=crop', category: 'facility',     caption: 'Intensive Care Unit (ICU)' },
-  { id: '15', url: 'https://images.unsplash.com/photo-1609840114035-3c981b782dfe?w=800&auto=format&fit=crop', category: 'medical-team', caption: 'Dental Hygiene Education Campaign' },
-  { id: '16', url: 'https://images.unsplash.com/photo-1584346133934-a3afd65a4f50?w=800&auto=format&fit=crop', category: 'campaigns',    caption: 'Hope Mobile Clinic — Village Outreach' },
-];
 
 const videos = [
   { id: 'v1', thumbnail: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop', title: 'Hope Clinic Koumé — 10 Years Overview' },
@@ -47,21 +29,19 @@ async function fetchGallery(): Promise<GalleryImage[]> {
   try {
     const res = await fetch('/api/admin/gallery');
     if (res.ok) {
-      const data = await res.json() as Record<string, unknown>[];
-      const active = data.filter(r => r.is_active !== false);
-      if (active.length > 0) {
-        return active.map(r => ({
+      return (await res.json() as Record<string, unknown>[])
+        .filter(r => r.is_active !== false)
+        .map(r => ({
           id:       String(r.id),
           url:      String(r.url ?? r.image_url ?? ''),
           category: String(r.category ?? 'facility'),
           caption:  String(r.caption ?? r.alt ?? ''),
         }));
-      }
     }
   } catch (e) {
     console.error('[fetchGallery] API error:', e);
   }
-  return SEED_IMAGES;
+  return [];
 }
 
 export default function GalleryPage() {
@@ -72,8 +52,19 @@ export default function GalleryPage() {
   const { data: galleryImages } = useSupabaseRealtime<GalleryImage[]>(
     'gallery_items',
     fetchGallery,
-    SEED_IMAGES,
+    [],
   );
+
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape')      setLightboxIdx(null);
+      if (e.key === 'ArrowLeft')   setLightboxIdx(i => i !== null ? (i - 1 + filtered.length) % filtered.length : null);
+      if (e.key === 'ArrowRight')  setLightboxIdx(i => i !== null ? (i + 1) % filtered.length : null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightboxIdx, filtered.length]);
 
   const filtered = activeCategory === 'all'
     ? galleryImages
